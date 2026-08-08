@@ -29,7 +29,7 @@ import enCountries from "i18n-iso-countries/langs/en.json";
 import zhCountries from "i18n-iso-countries/langs/zh.json";
 
 type Lang = "zh" | "en";
-type Metric = "joint" | "anxiety" | "suicide" | "divergence";
+type Metric = "joint" | "longTerm" | "anxiety" | "suicide" | "divergence";
 type Datum = {
   country_code: string;
   country_name: string;
@@ -47,10 +47,11 @@ type RankedCountry = {
   anxiety: number;
   suicideRank: number;
   anxietyRank: number;
-  suicidePct: number;
-  anxietyPct: number;
-  burden: number;
-  change: number;
+  longTermSuicide: number;
+  longTermAnxiety: number;
+  longTermBurden: number;
+  longTermRank: number;
+  jointIncrease: number;
   joint: number;
   divergence: number;
   suicideChange: number;
@@ -208,20 +209,21 @@ const copy = {
     years: "观测年份",
     latest: "当前年份",
     divergence: "全球分化信号",
-    mapTitle: "全球负担脉冲",
-    mapSub: "点击国家，所有视图同步聚焦",
+    mapTitle: "自杀与焦虑的长期国家负担格局",
+    mapSub: "展示综合排名、长期联合负担与年度结局水平",
     trendTitle: "年度轨迹",
     trendGlobal: "全球中位数（2000=100）",
     trendCountry: "国家原始值",
-    ringTitle: "综合评分轨道",
-    ringSub: "排名越靠前，轨道越接近外圈",
-    rankTitle: "双结局排名引擎",
-    rankSub: "支持按名称检索并即时切换指标",
+    ringTitle: "综合负担排名",
+    ringSub: "全部国家和地区采用统一颜色，条长表示综合排名分数",
+    rankTitle: "综合负担与长期联合负担排名",
+    rankSub: "同时比较综合排名、长期负担与两项结局水平",
     methodology: "计算方法",
-    burdenWeight: "长期负担权重",
-    trendWeight: "变化趋势权重",
-    methodologyText: "综合评分 = 长期联合负担百分位 × 权重 + 两项结局相对首年的联合变化百分位 × 剩余权重。两项结局在计算前分别转为国家间百分位，避免单位差异主导结果。",
-    joint: "综合评分",
+    burdenWeight: "长期联合负担权重",
+    trendWeight: "联合增长权重",
+    methodologyText: "长期联合负担是各国研究期内平均自杀死亡率和平均焦虑症患病率分别标准化后的均值。联合增长分数是两项结局对数线性年度斜率分别标准化后的均值。综合负担排名分数固定由60%的长期联合负担和40%的联合增长分数组成。",
+    joint: "综合负担排名分数",
+    longTerm: "长期联合负担",
     anxiety: "焦虑患病率",
     suicide: "自杀死亡率",
     divergenceMetric: "结局分化",
@@ -242,7 +244,7 @@ const copy = {
     downloadTemplate: "下载模板",
     invalid: "无法读取数据。请检查字段名、年份和数值列。",
     loaded: "数据已载入，全部视图已更新",
-    top: "前36名",
+    top: "全部国家和地区",
     all: "全部国家",
     selectYear: "选择年份",
     currentValue: "当前值",
@@ -257,16 +259,18 @@ const copy = {
     noData: "暂无数据",
     high: "高",
     low: "低",
-    topSix: "前6名",
+    uniformColor: "统一颜色",
+    allRankedAreas: "全部{count}个国家和地区",
     switchLanguage: "切换至英文",
     rankingMetric: "排名指标",
     expand: "展开",
     footerNote: "国家层面的探索性可视化 · 相关关系与排名不代表个体风险或因果关系。",
     areas: "个国家或地区",
     version: "版本",
-    scoreFormula: "综合评分",
-    burdenPercentile: "负担百分位",
-    changePercentile: "变化百分位",
+    scoreFormula: "综合负担排名分数",
+    longTermScore: "长期联合负担",
+    jointIncreaseScore: "联合增长分数",
+    longTermRank: "长期负担",
     statA: "一",
     statB: "二",
     statC: "三",
@@ -283,20 +287,21 @@ const copy = {
     years: "Observed years",
     latest: "Active year",
     divergence: "Global divergence signal",
-    mapTitle: "Global burden pulse",
-    mapSub: "Select a country to focus every view",
+    mapTitle: "Long-term national architecture of suicide and anxiety burdens",
+    mapSub: "Explore composite ranking, long-term joint burden and annual outcome levels",
     trendTitle: "Annual trajectories",
     trendGlobal: "Global median (2000=100)",
     trendCountry: "Country values",
-    ringTitle: "RankScore orbit",
-    ringSub: "Higher-ranked countries sit closer to the outer orbit",
-    rankTitle: "Dual-outcome ranking engine",
-    rankSub: "Search countries and switch metrics instantly",
+    ringTitle: "Composite burden ranking",
+    ringSub: "All countries and territories share one color; bar length encodes the composite score",
+    rankTitle: "Composite and long-term joint burden rankings",
+    rankSub: "Compare composite rank, long-term burden and both outcome levels",
     methodology: "Method",
-    burdenWeight: "Long-term burden weight",
-    trendWeight: "Change weight",
-    methodologyText: "Composite RankScore = joint long-term burden percentile × selected weight + joint change-from-baseline percentile × the remaining weight. Each outcome is converted to a cross-country percentile before combination so that units do not dominate the score.",
-    joint: "Composite RankScore",
+    burdenWeight: "Long-term joint burden weight",
+    trendWeight: "Joint increase weight",
+    methodologyText: "Long-term joint burden is the mean of the standardized country-level mean suicide mortality and anxiety prevalence over the study period. The joint increase score is the mean of the standardized log-linear annual slopes for both outcomes. The composite burden ranking score is fixed at 60% long-term joint burden and 40% joint increase.",
+    joint: "Composite burden ranking score",
+    longTerm: "Long-term joint burden",
     anxiety: "Anxiety prevalence",
     suicide: "Suicide mortality",
     divergenceMetric: "Outcome divergence",
@@ -317,7 +322,7 @@ const copy = {
     downloadTemplate: "Download template",
     invalid: "The data could not be read. Check column names, years and numeric fields.",
     loaded: "Data loaded — every view has been updated",
-    top: "TOP 36",
+    top: "ALL COUNTRIES AND TERRITORIES",
     all: "All countries",
     selectYear: "Select year",
     currentValue: "Current value",
@@ -332,16 +337,18 @@ const copy = {
     noData: "No data",
     high: "HIGH",
     low: "LOW",
-    topSix: "TOP 6",
+    uniformColor: "Uniform color",
+    allRankedAreas: "All {count} countries and territories",
     switchLanguage: "Switch to Chinese",
     rankingMetric: "Ranking metric",
     expand: "Expand",
     footerNote: "Exploratory country-level visualization · Associations and rankings do not imply individual risk or causality.",
     areas: "AREAS",
     version: "v",
-    scoreFormula: "RANK SCORE",
-    burdenPercentile: "BURDEN PERCENTILE",
-    changePercentile: "CHANGE PERCENTILE",
+    scoreFormula: "COMPOSITE BURDEN RANKING SCORE",
+    longTermScore: "LONG-TERM JOINT BURDEN",
+    jointIncreaseScore: "JOINT INCREASE SCORE",
+    longTermRank: "LONG-TERM BURDEN",
     statA: "A",
     statB: "B",
     statC: "C",
@@ -467,11 +474,27 @@ function median(values: number[]) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
-function rankPercentiles(values: Array<{ key: string; value: number }>) {
-  const sorted = [...values].sort((a, b) => a.value - b.value);
+function standardScores(values: Array<{ key: string; value: number }>) {
+  const finite = values.filter((entry) => Number.isFinite(entry.value));
   const map = new Map<string, number>();
-  sorted.forEach((entry, index) => map.set(entry.key, sorted.length <= 1 ? 1 : index / (sorted.length - 1)));
+  if (!finite.length) return map;
+  const mean = finite.reduce((sum, entry) => sum + entry.value, 0) / finite.length;
+  const variance = finite.reduce((sum, entry) => sum + (entry.value - mean) ** 2, 0) / finite.length;
+  const scale = Math.sqrt(variance);
+  finite.forEach((entry) => map.set(entry.key, scale > 0 ? (entry.value - mean) / scale : 0));
   return map;
+}
+
+function logLinearSlope(series: Datum[], value: (row: Datum) => number) {
+  const valid = series
+    .map((row) => ({ year: row.year, logValue: Math.log(value(row)) }))
+    .filter((row) => Number.isFinite(row.year) && Number.isFinite(row.logValue));
+  if (valid.length < 3) return 0;
+  const meanYear = valid.reduce((sum, row) => sum + row.year, 0) / valid.length;
+  const meanLogValue = valid.reduce((sum, row) => sum + row.logValue, 0) / valid.length;
+  const numerator = valid.reduce((sum, row) => sum + (row.year - meanYear) * (row.logValue - meanLogValue), 0);
+  const denominator = valid.reduce((sum, row) => sum + (row.year - meanYear) ** 2, 0);
+  return denominator > 0 ? numerator / denominator : 0;
 }
 
 function field(row: Record<string, unknown>, target: keyof typeof aliases) {
@@ -545,6 +568,7 @@ function EChart({ option, className, onClick }: ChartProps) {
 
 function MetricGlyph({ metric }: { metric: Metric }) {
   if (metric === "joint") return <Sparkles size={14} />;
+  if (metric === "longTerm") return <Globe2 size={14} />;
   if (metric === "anxiety") return <Activity size={14} />;
   if (metric === "suicide") return <BarChart3 size={14} />;
   return <ArrowUpRight size={14} />;
@@ -555,7 +579,7 @@ export default function Home() {
   const [rows, setRows] = useState<Datum[]>([]);
   const [sourceName, setSourceName] = useState("loading");
   const [metric, setMetric] = useState<Metric>("joint");
-  const [burdenWeight, setBurdenWeight] = useState(60);
+  const burdenWeight = 60;
   const [year, setYear] = useState(2019);
   const [selected, setSelected] = useState("CHN");
   const [query, setQuery] = useState("");
@@ -622,38 +646,61 @@ export default function Home() {
   }, [rows]);
 
   const ranking = useMemo<RankedCountry[]>(() => {
-    const current: Array<{ key: string; row: Datum; first: Datum; longSuicide: number; longAnxiety: number }> = [];
+    const current: Array<{
+      key: string;
+      row: Datum;
+      first: Datum;
+      longSuicide: number;
+      longAnxiety: number;
+      suicideSlope: number;
+      anxietySlope: number;
+    }> = [];
     countrySeries.forEach((series, key) => {
       const active = series.find((item) => item.year === year);
       if (!active) return;
-      const available = series.filter((item) => item.year <= year);
-      const first = available[0];
+      const first = series[0];
       current.push({
         key,
         row: active,
         first,
-        longSuicide: available.reduce((sum, item) => sum + item.suicide_rate, 0) / available.length,
-        longAnxiety: available.reduce((sum, item) => sum + item.anxiety_disorder_prevalence, 0) / available.length,
+        longSuicide: series.reduce((sum, item) => sum + item.suicide_rate, 0) / series.length,
+        longAnxiety: series.reduce((sum, item) => sum + item.anxiety_disorder_prevalence, 0) / series.length,
+        suicideSlope: logLinearSlope(series, (item) => item.suicide_rate),
+        anxietySlope: logLinearSlope(series, (item) => item.anxiety_disorder_prevalence),
       });
     });
-    const suicidePct = rankPercentiles(current.map((item) => ({ key: item.key, value: item.longSuicide })));
-    const anxietyPct = rankPercentiles(current.map((item) => ({ key: item.key, value: item.longAnxiety })));
+    const suicideLevelZ = standardScores(current.map((item) => ({ key: item.key, value: item.longSuicide })));
+    const anxietyLevelZ = standardScores(current.map((item) => ({ key: item.key, value: item.longAnxiety })));
+    const suicideSlopeZ = standardScores(current.map((item) => ({ key: item.key, value: item.suicideSlope })));
+    const anxietySlopeZ = standardScores(current.map((item) => ({ key: item.key, value: item.anxietySlope })));
     const suicideChanges = current.map((item) => ({ key: item.key, value: ((item.row.suicide_rate / item.first.suicide_rate) - 1) * 100 }));
     const anxietyChanges = current.map((item) => ({ key: item.key, value: ((item.row.anxiety_disorder_prevalence / item.first.anxiety_disorder_prevalence) - 1) * 100 }));
-    const suicideChangePct = rankPercentiles(suicideChanges);
-    const anxietyChangePct = rankPercentiles(anxietyChanges);
     const suicideRanks = [...current].sort((a, b) => b.row.suicide_rate - a.row.suicide_rate);
     const anxietyRanks = [...current].sort((a, b) => b.row.anxiety_disorder_prevalence - a.row.anxiety_disorder_prevalence);
     const suicideRank = new Map(suicideRanks.map((item, index) => [item.key, index + 1]));
     const anxietyRank = new Map(anxietyRanks.map((item, index) => [item.key, index + 1]));
     const weight = burdenWeight / 100;
-    return current.map((item) => {
-      const sp = suicidePct.get(item.key) || 0;
-      const ap = anxietyPct.get(item.key) || 0;
-      const burden = (sp + ap) / 2;
-      const change = ((suicideChangePct.get(item.key) || 0) + (anxietyChangePct.get(item.key) || 0)) / 2;
+    const calculated = current.map((item) => {
+      const longTermBurden = ((suicideLevelZ.get(item.key) || 0) + (anxietyLevelZ.get(item.key) || 0)) / 2;
+      const jointIncrease = ((suicideSlopeZ.get(item.key) || 0) + (anxietySlopeZ.get(item.key) || 0)) / 2;
       const suicideChange = suicideChanges.find((entry) => entry.key === item.key)?.value || 0;
       const anxietyChange = anxietyChanges.find((entry) => entry.key === item.key)?.value || 0;
+      return {
+        key: item.key,
+        item,
+        longTermBurden,
+        jointIncrease,
+        suicideChange,
+        anxietyChange,
+        joint: longTermBurden * weight + jointIncrease * (1 - weight),
+      };
+    });
+    const longTermRank = new Map(
+      [...calculated]
+        .sort((a, b) => b.longTermBurden - a.longTermBurden)
+        .map((entry, index) => [entry.key, index + 1]),
+    );
+    return calculated.map(({ item, longTermBurden, jointIncrease, suicideChange, anxietyChange, joint }) => {
       return {
         code: item.row.country_code,
         name: item.row.country_name,
@@ -662,12 +709,13 @@ export default function Home() {
         anxiety: item.row.anxiety_disorder_prevalence,
         suicideRank: suicideRank.get(item.key) || 0,
         anxietyRank: anxietyRank.get(item.key) || 0,
-        suicidePct: sp,
-        anxietyPct: ap,
-        burden,
-        change,
-        joint: (burden * weight + change * (1 - weight)) * 100,
-        divergence: Math.abs(anxietyChange - suicideChange),
+        longTermSuicide: item.longSuicide,
+        longTermAnxiety: item.longAnxiety,
+        longTermBurden,
+        longTermRank: longTermRank.get(item.key) || 0,
+        jointIncrease,
+        joint,
+        divergence: Math.abs(item.anxietySlope - item.suicideSlope) * 100,
         suicideChange,
         anxietyChange,
       };
@@ -675,6 +723,7 @@ export default function Home() {
   }, [burdenWeight, countrySeries, year]);
 
   const metricValue = useCallback((item: RankedCountry) => {
+    if (metric === "longTerm") return item.longTermBurden;
     if (metric === "anxiety") return item.anxiety;
     if (metric === "suicide") return item.suicide;
     if (metric === "divergence") return item.divergence;
@@ -708,6 +757,7 @@ export default function Home() {
 
   const mapOption = useMemo<echarts.EChartsOption>(() => {
     const values = ranking.map(metricValue);
+    const min = Math.min(...values, 0);
     const max = Math.max(...values, 1);
     const mapData = ranking.map((item) => ({
       name: atlasCountryName(item.code, item.name),
@@ -717,6 +767,7 @@ export default function Home() {
       suicide: item.suicide,
       anxiety: item.anxiety,
       joint: item.joint,
+      longTermBurden: item.longTermBurden,
     }));
     return {
       backgroundColor: "transparent",
@@ -727,23 +778,26 @@ export default function Home() {
         borderColor: "rgba(116, 227, 255, .3)",
         textStyle: { color: "#eef9ff", fontFamily: "Arial" },
         formatter: (params: unknown) => {
-          const p = params as { data?: { displayName: string; code: string; suicide: number; anxiety: number; joint: number } };
+          const p = params as { data?: { displayName: string; code: string; suicide: number; anxiety: number; joint: number; longTermBurden: number } };
           if (!p.data) return t.noData;
-          return `<div class="map-tip"><b>${p.data.displayName}</b><span>${p.data.code}</span><hr/><div>${t.suicide} <strong>${fmt(p.data.suicide)}</strong></div><div>${t.anxiety} <strong>${fmt(p.data.anxiety)}%</strong></div><div>${t.joint} <strong>${fmt(p.data.joint, 1)}</strong></div></div>`;
+          return `<div class="map-tip"><b>${p.data.displayName}</b><span>${p.data.code}</span><hr/><div>${t.suicide} <strong>${fmt(p.data.suicide)}</strong></div><div>${t.anxiety} <strong>${fmt(p.data.anxiety)}%</strong></div><div>${t.longTerm} <strong>${fmt(p.data.longTermBurden, 2)}</strong></div><div>${t.joint} <strong>${fmt(p.data.joint, 2)}</strong></div></div>`;
         },
       },
       visualMap: {
-        min: 0,
+        type: "continuous",
+        min,
         max,
-        left: 8,
-        bottom: 2,
+        left: "center",
+        bottom: 10,
         orient: "horizontal",
-        itemWidth: 98,
-        itemHeight: 7,
+        itemWidth: 8,
+        itemHeight: 180,
         text: [t.high, t.low],
-        textStyle: { color: "#6f8190", fontSize: 9, fontFamily: "Arial" },
+        textGap: 9,
+        textStyle: { color: "#8aa0ad", fontSize: 9, fontFamily: "Arial" },
         calculable: false,
-        inRange: { color: ["#101c25", "#135069", "#1e9fc2", "#f49a78", "#ff4f68"] },
+        inRange: { color: ["#26547c", "#2ec4b6", "#f6d365", "#f78c6b", "#ef476f"] },
+        outOfRange: { color: ["#172832"] },
         borderColor: "transparent",
       },
       series: [{
@@ -753,14 +807,14 @@ export default function Home() {
         scaleLimit: { min: 1, max: 8 },
         zoom: 1.06,
         top: 0,
-        bottom: 10,
+        bottom: 38,
         data: mapData,
         itemStyle: { areaColor: "#111d26", borderColor: "#283945", borderWidth: 0.55 },
         emphasis: { label: { show: false }, itemStyle: { areaColor: "#f6d365", borderColor: "#fff3bf", borderWidth: 1.2, shadowBlur: 20, shadowColor: "rgba(246,211,101,.45)" } },
         select: { label: { show: false }, itemStyle: { areaColor: "#f6d365", borderColor: "#ffffff" } },
       }],
     };
-  }, [countryLabel, metricValue, ranking, t.anxiety, t.high, t.joint, t.low, t.noData, t.suicide]);
+  }, [countryLabel, metricValue, ranking, t.anxiety, t.high, t.joint, t.longTerm, t.low, t.noData, t.suicide]);
 
   const handleMapClick = useCallback((params: unknown) => {
     const p = params as { data?: { code?: string } };
@@ -801,46 +855,51 @@ export default function Home() {
     };
   }, [countryLabel, globalBaseAnxiety, globalBaseSuicide, globalSeries, selectedRank, selectedRows, t.anxiety, t.suicide, t.trendCountry, t.trendGlobal, years]);
 
-  const ringCountries = sortedRanking.slice(0, 36);
-  const ringOption = useMemo<echarts.EChartsOption>(() => ({
-    backgroundColor: "transparent",
-    animationDurationUpdate: 650,
-    tooltip: {
-      trigger: "item",
-      backgroundColor: "rgba(7,12,18,.96)",
-      borderColor: "#31434f",
-      textStyle: { color: "#eef9ff" },
-      formatter: (params: unknown) => {
-        const p = params as { name: string; value: number; dataIndex: number };
-        const country = ringCountries[p.dataIndex];
-        return `<b>#${p.dataIndex + 1} ${p.name}</b><br/>${t.joint}&nbsp;&nbsp;<strong>${fmt(country?.joint || p.value, 1)}</strong><br/>${t.anxiety}&nbsp;&nbsp;${fmt(country?.anxiety || 0)}%<br/>${t.suicide}&nbsp;&nbsp;${fmt(country?.suicide || 0)}`;
-      },
-    },
-    angleAxis: { type: "category", data: ringCountries.map(countryLabel), startAngle: 90, clockwise: true, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false } },
-    radiusAxis: { min: 0, max: Math.max(...ringCountries.map(metricValue), 1), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false }, splitLine: { lineStyle: { color: ["rgba(111,132,145,.11)"] } }, splitNumber: 4 },
-    polar: { radius: ["22%", "85%"] },
-    series: [{
-      type: "bar",
-      coordinateSystem: "polar",
-      roundCap: true,
-      barWidth: "66%",
-      data: ringCountries.map((item, index) => ({
-        name: countryLabel(item),
-        value: metricValue(item),
-        code: item.code,
-        itemStyle: {
-          color: index < 6 ? "#ff5b78" : index < 18 ? "#f2af69" : "#35cee9",
-          opacity: selectedCode === item.code ? 1 : 0.7,
-          shadowBlur: selectedCode === item.code ? 14 : 0,
-          shadowColor: "rgba(255,255,255,.35)",
+  const ringCountries = useMemo(() => [...ranking].sort((a, b) => b.joint - a.joint), [ranking]);
+  const ringOption = useMemo<echarts.EChartsOption>(() => {
+    const floor = Math.min(...ringCountries.map((item) => item.joint), 0);
+    const offset = -floor + 0.05;
+    const ringValues = ringCountries.map((item) => item.joint + offset);
+    return {
+      backgroundColor: "transparent",
+      animationDurationUpdate: 650,
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "rgba(7,12,18,.96)",
+        borderColor: "#31434f",
+        textStyle: { color: "#eef9ff" },
+        formatter: (params: unknown) => {
+          const p = params as { name: string; dataIndex: number };
+          const country = ringCountries[p.dataIndex];
+          return `<b>#${p.dataIndex + 1} ${p.name}</b><br/>${t.joint}&nbsp;&nbsp;<strong>${fmt(country?.joint || 0, 2)}</strong><br/>${t.longTerm}&nbsp;&nbsp;<strong>#${country?.longTermRank || 0} · ${fmt(country?.longTermBurden || 0, 2)}</strong><br/>${t.anxiety}&nbsp;&nbsp;${fmt(country?.longTermAnxiety || 0)}%<br/>${t.suicide}&nbsp;&nbsp;${fmt(country?.longTermSuicide || 0)}`;
         },
-      })),
-    }],
-    graphic: [
-      { type: "text", left: "center", top: "43%", style: { text: t.top, fill: "#718492", font: "600 10px Arial", textAlign: "center" } },
-      { type: "text", left: "center", top: "49%", style: { text: String(ringCountries.length), fill: "#eefaff", font: "700 28px Arial", textAlign: "center" } },
-    ],
-  }), [countryLabel, metricValue, ringCountries, selectedCode, t.anxiety, t.joint, t.suicide, t.top]);
+      },
+      angleAxis: { type: "category", data: ringCountries.map(countryLabel), startAngle: 90, clockwise: true, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false } },
+      radiusAxis: { min: 0, max: Math.max(...ringValues, 1), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false }, splitLine: { lineStyle: { color: ["rgba(111,132,145,.11)"] } }, splitNumber: 4 },
+      polar: { radius: ["24%", "86%"] },
+      series: [{
+        type: "bar",
+        coordinateSystem: "polar",
+        roundCap: true,
+        barWidth: "88%",
+        data: ringCountries.map((item, index) => ({
+          name: countryLabel(item),
+          value: ringValues[index],
+          code: item.code,
+          itemStyle: {
+            color: "#2ec4b6",
+            opacity: selectedCode === item.code ? 1 : 0.72,
+            shadowBlur: selectedCode === item.code ? 16 : 0,
+            shadowColor: "rgba(46,196,182,.5)",
+          },
+        })),
+      }],
+      graphic: [
+        { type: "text", left: "center", top: "42%", style: { text: t.top, fill: "#718492", font: "600 9px Arial", textAlign: "center" } },
+        { type: "text", left: "center", top: "49%", style: { text: String(ringCountries.length), fill: "#eefaff", font: "700 28px Arial", textAlign: "center" } },
+      ],
+    };
+  }, [countryLabel, ringCountries, selectedCode, t.anxiety, t.joint, t.longTerm, t.suicide, t.top]);
 
   const handleRingClick = useCallback((params: unknown) => {
     const p = params as { data?: { code?: string } };
@@ -882,7 +941,13 @@ export default function Home() {
       suicide_rank: item.suicideRank,
       anxiety_disorder_prevalence: item.anxiety,
       anxiety_rank: item.anxietyRank,
-      rank_score: item.joint,
+      long_term_suicide_mean: item.longTermSuicide,
+      long_term_anxiety_mean: item.longTermAnxiety,
+      long_term_joint_burden: item.longTermBurden,
+      long_term_rank: item.longTermRank,
+      joint_increase_score: item.jointIncrease,
+      burden_ranking_score: item.joint,
+      composite_rank: ringCountries.findIndex((entry) => entry.code === item.code) + 1,
       divergence_score: item.divergence,
     }));
     downloadText(`mind_atlas_ranking_${year}.csv`, Papa.unparse(data));
@@ -898,7 +963,11 @@ export default function Home() {
   };
 
   const metricLabel = t[metric === "divergence" ? "divergenceMetric" : metric];
+  const metricPeriod = metric === "joint" || metric === "longTerm" ? `${minYear}–${maxYear}` : String(year);
   const rangeProgress = years.length > 1 ? ((year - minYear) / (maxYear - minYear)) * 100 : 100;
+  const rankingMetricMinimum = sortedRanking.length ? Math.min(...sortedRanking.map(metricValue)) : 0;
+  const rankingMetricMaximum = sortedRanking.length ? Math.max(...sortedRanking.map(metricValue)) : 1;
+  const rankingMetricSpan = rankingMetricMaximum - rankingMetricMinimum;
 
   return (
     <main className="app-shell">
@@ -930,7 +999,7 @@ export default function Home() {
 
       <section className="control-strip">
         <div className="metric-tabs" role="tablist" aria-label={t.rankingMetric}>
-          {(["joint", "anxiety", "suicide", "divergence"] as Metric[]).map((item) => (
+          {(["joint", "longTerm", "anxiety", "suicide", "divergence"] as Metric[]).map((item) => (
             <button key={item} className={metric === item ? "active" : ""} onClick={() => setMetric(item)} role="tab" aria-selected={metric === item}>
               <MetricGlyph metric={item} />{t[item === "divergence" ? "divergenceMetric" : item]}
             </button>
@@ -963,7 +1032,7 @@ export default function Home() {
         <article className="panel map-panel">
           <div className="panel-head">
             <div><span className="panel-number">{t.spatialSection}</span><h2>{t.mapTitle}</h2><p>{t.mapSub}</p></div>
-            <div className="panel-badge"><Globe2 size={14} />{metricLabel} · {year}</div>
+            <div className="panel-badge"><Globe2 size={14} />{metricLabel} · {metricPeriod}</div>
           </div>
           <EChart option={mapOption} className="map-chart" onClick={handleMapClick} />
           <div className="map-country-card">
@@ -991,7 +1060,7 @@ export default function Home() {
             <button className="ghost-icon" onClick={() => setMethodOpen(true)} aria-label={t.methodology}><CircleHelp size={16} /></button>
           </div>
           <EChart option={ringOption} className="ring-chart" onClick={handleRingClick} />
-          <div className="ring-legend"><span><i className="legend-hot" />{t.topSix}</span><span><i className="legend-warm" />7—18</span><span><i className="legend-cool" />19—36</span></div>
+          <div className="ring-legend"><span><i className="legend-uniform" />{t.uniformColor}</span><span>{t.allRankedAreas.replace("{count}", String(ringCountries.length))}</span></div>
         </article>
 
         <article className="panel ranking-panel">
@@ -1003,16 +1072,17 @@ export default function Home() {
             <label><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} /></label>
             <button onClick={() => setMethodOpen(true)}><span>{burdenWeight}/{100 - burdenWeight}</span>{t.methodology}<ChevronDown size={13} /></button>
           </div>
-          <div className="ranking-columns"><span>{t.rank}</span><span>{t.all}</span><span>{t.anxiety}</span><span>{t.suicide}</span><span>{t.score}</span></div>
+          <div className="ranking-columns"><span>{t.rank}</span><span>{t.all}</span><span>{t.anxiety}</span><span>{t.suicide}</span><span>{t.longTermRank}</span><span>{t.score}</span></div>
           <div className="ranking-list">
-            {filteredRanking.slice(0, 100).map((item, index) => {
+            {filteredRanking.map((item) => {
               const actualRank = sortedRanking.findIndex((entry) => entry.code === item.code) + 1;
               return <button key={`${item.code}-${item.name}`} className={selectedCode === item.code ? "selected" : ""} onClick={() => setSelected(item.code)}>
                 <span className="rank-number">{String(actualRank).padStart(2, "0")}</span>
                 <span className="country-cell"><i>{item.code.slice(0, 3)}</i><span><strong>{countryLabel(item)}</strong><small>{continentLabel(item.continent)}</small></span></span>
                 <span><b>#{item.anxietyRank}</b><small>{fmt(item.anxiety)}%</small></span>
                 <span><b>#{item.suicideRank}</b><small>{fmt(item.suicide)}</small></span>
-                <span className="score-cell"><b>{fmt(metricValue(item), 1)}</b><i style={{ width: `${Math.min(100, (metricValue(item) / Math.max(metricValue(sortedRanking[0]), 1)) * 100)}%` }} /></span>
+                <span><b>#{item.longTermRank}</b><small>{fmt(item.longTermBurden, 2)}</small></span>
+                <span className="score-cell"><b>{fmt(metricValue(item), 2)}</b><i style={{ width: `${rankingMetricSpan > 0 ? ((metricValue(item) - rankingMetricMinimum) / rankingMetricSpan) * 100 : 100}%` }} /></span>
               </button>;
             })}
             {!filteredRanking.length && <div className="no-match">{t.noMatch}</div>}
@@ -1041,8 +1111,7 @@ export default function Home() {
             <h3>{t.methodology}</h3>
             <p>{t.methodologyText}</p>
             <div className="weight-readout"><div><span>{t.burdenWeight}</span><strong>{burdenWeight}%</strong></div><div><span>{t.trendWeight}</span><strong>{100 - burdenWeight}%</strong></div></div>
-            <input className="weight-slider" type="range" min="0" max="100" step="5" value={burdenWeight} style={{ "--range-progress": `${burdenWeight}%` } as React.CSSProperties} onChange={(event) => setBurdenWeight(Number(event.target.value))} />
-            <div className="formula"><span>{t.scoreFormula}</span><b>=</b><em>{(burdenWeight / 100).toFixed(2)} · {t.burdenPercentile}</em><b>+</b><em>{((100 - burdenWeight) / 100).toFixed(2)} · {t.changePercentile}</em></div>
+            <div className="formula"><span>{t.scoreFormula}</span><b>=</b><em>{(burdenWeight / 100).toFixed(2)} · {t.longTermScore}</em><b>+</b><em>{((100 - burdenWeight) / 100).toFixed(2)} · {t.jointIncreaseScore}</em></div>
           </>}
         </div>
       </div>}
