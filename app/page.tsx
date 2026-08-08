@@ -67,6 +67,10 @@ const worldGeo = feature(
 ) as unknown as GeoJSON.FeatureCollection;
 
 let worldRegistered = false;
+if (!worldRegistered) {
+  echarts.registerMap("mind-world", worldGeo as never);
+  worldRegistered = true;
+}
 
 const copy = {
   zh: {
@@ -343,13 +347,6 @@ export default function Home() {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const t = copy[lang];
-
-  useEffect(() => {
-    if (!worldRegistered) {
-      echarts.registerMap("mind-world", worldGeo as never);
-      worldRegistered = true;
-    }
-  }, []);
 
   const years = useMemo(() => [...new Set(rows.map((row) => row.year))].sort((a, b) => a - b), [rows]);
   const minYear = years[0] ?? 2000;

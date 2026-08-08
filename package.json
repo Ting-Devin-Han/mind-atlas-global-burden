@@ -7,7 +7,10 @@
   },
   "scripts": {
     "dev": "vinext dev",
+    "dev:static": "vite --config vite.static.config.ts",
     "build": "vinext build",
+    "build:static": "vite build --config vite.static.config.ts",
+    "preview:static": "vite preview --config vite.static.config.ts",
     "start": "vinext start",
     "test": "pnpm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
