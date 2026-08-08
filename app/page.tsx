@@ -196,8 +196,8 @@ const atlasNameByNumericCode = new Map(
     .map((geo) => [String(geo.id).padStart(3, "0"), geo.properties?.name as string]),
 );
 
-const burdenMapPalette = ["#2b1748", "#4b2572", "#75409a", "#a44c91", "#cf5a78", "#ee7b62", "#f5b45f", "#f6d58a"];
-const rankingRingPalette = ["#49337f", "#6650ad", "#8564c9", "#ad6bc0", "#d56da3", "#ef7c82", "#fa9f68", "#f6cc70"];
+const burdenMapPalette = ["#f6d58a", "#f5b45f", "#ee7b62", "#cf5a78", "#a44c91", "#75409a", "#4b2572", "#2b1748"];
+const rankingRingPalette = ["#f6cc70", "#fa9f68", "#ef7c82", "#d56da3", "#ad6bc0", "#8564c9", "#6650ad", "#49337f"];
 
 function interpolatePalette(palette: string[], position: number) {
   const bounded = Math.max(0, Math.min(1, position));
@@ -274,7 +274,7 @@ const copy = {
     noData: "暂无数据",
     high: "高",
     low: "低",
-    gradientColor: "渐变颜色表示综合排名",
+    gradientColor: "低值黄色 · 高值紫色",
     allRankedAreas: "全部{count}个国家和地区",
     topTen: "综合排名前十名",
     bottomTen: "综合排名末十名",
@@ -354,7 +354,7 @@ const copy = {
     noData: "No data",
     high: "HIGH",
     low: "LOW",
-    gradientColor: "Gradient color encodes composite rank",
+    gradientColor: "Yellow for lower values · purple for higher values",
     allRankedAreas: "All {count} countries and territories",
     topTen: "Top 10 composite ranks",
     bottomTen: "Bottom 10 composite ranks",
