@@ -3,19 +3,19 @@
 import { Languages } from "lucide-react";
 
 export type AtlasLanguage = "zh" | "en";
-export type AtlasRoute = "atlas" | "scenario" | "survey";
+export type AtlasRoute = "atlas" | "scenario" | "survey" | "admin";
 
 const labels = {
   zh: {
     atlas: "全球观测台",
     scenario: "排名情景实验室",
-    survey: "政策认知问卷",
+    survey: "个体研究问卷",
     language: "切换至英文",
   },
   en: {
     atlas: "Global atlas",
     scenario: "Ranking scenario lab",
-    survey: "Policy perception survey",
+    survey: "Individual study",
     language: "Switch to Chinese",
   },
 };

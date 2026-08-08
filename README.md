@@ -8,7 +8,8 @@ An interactive, browser-only dashboard for comparing anxiety-disorder prevalence
 
 - `#/` — Global atlas with maps, trajectories and rankings / 全球地图、年度轨迹与综合排名
 - `#/scenario` — Ranking scenario lab with adjustable outcome and temporal weights / 可调整结局与时间权重的排名情景实验室
-- `#/survey` — Anonymous mental-health policy priority survey with a local visual profile / 匿名心理健康政策优先级问卷与本地可视化结果
+- `#/survey` — Individual mental-health and socioeconomic research survey for adults aged 18+ / 面向18岁及以上成年人的个体心理健康与社会经济研究问卷
+- `#/admin` — Authorised research data dashboard / 仅授权管理员访问的研究数据后台
 
 ## Data format / 数据格式
 
@@ -24,9 +25,22 @@ Optional / 可选字段: `continent`. Existing aliases such as `Code`, `NAME`, `
 
 ## Privacy / 隐私
 
-Uploaded files and survey responses are processed locally in the visitor's browser and are not sent to a server.
+Uploaded country panels are processed locally. Research survey responses are submitted only after electronic consent and only when an approved study database is configured.
 
-上传文件与问卷答案仅在访问者的浏览器中处理，不会发送到服务器。
+上传的国家面板仅在浏览器本地处理。个体研究问卷仅在参与者完成电子知情同意、且经批准的研究数据库完成配置后才会提交。
+
+## Research database / 研究数据库
+
+The survey uses a Supabase PostgreSQL database with row-level security. Anonymous visitors can insert one response but cannot read any record. Only users listed in `research_admins` can access the dashboard and export data.
+
+问卷使用启用行级安全策略的 Supabase PostgreSQL 数据库。匿名访问者只能提交一条记录，不能读取任何记录；只有加入 `research_admins` 的用户才能进入后台并导出数据。
+
+1. Create a Supabase project and run [`supabase/schema.sql`](supabase/schema.sql) in its SQL editor.
+2. Create the administrator in Supabase Authentication, then add that user UUID to `research_admins`.
+3. Add `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_STUDY_CONTACT` and `VITE_ETHICS_ID` as GitHub Actions repository secrets.
+4. Complete and obtain ethics approval for [`docs/participant-information-consent-template.md`](docs/participant-information-consent-template.md) before formal recruitment.
+
+The questionnaire variable definitions are documented in [`docs/individual-survey-data-dictionary.md`](docs/individual-survey-data-dictionary.md).
 
 ## Development / 本地开发
 

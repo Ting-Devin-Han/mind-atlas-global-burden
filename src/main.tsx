@@ -5,6 +5,7 @@ import "../app/globals.css";
 
 const ScenarioPage = lazy(() => import("../app/scenario-page"));
 const SurveyPage = lazy(() => import("../app/survey-page"));
+const AdminPage = lazy(() => import("../app/admin-page"));
 
 const root = document.getElementById("root");
 
@@ -15,6 +16,7 @@ if (!root) {
 function currentRoute() {
   if (window.location.hash.startsWith("#/scenario")) return "scenario";
   if (window.location.hash.startsWith("#/survey")) return "survey";
+  if (window.location.hash.startsWith("#/admin")) return "admin";
   return "atlas";
 }
 
@@ -30,6 +32,7 @@ function AppRouter() {
   }, []);
   if (route === "scenario") return <Suspense fallback={<div className="feature-loading">Loading…</div>}><ScenarioPage /></Suspense>;
   if (route === "survey") return <Suspense fallback={<div className="feature-loading">Loading…</div>}><SurveyPage /></Suspense>;
+  if (route === "admin") return <Suspense fallback={<div className="feature-loading">Loading…</div>}><AdminPage /></Suspense>;
   return <Home />;
 }
 
