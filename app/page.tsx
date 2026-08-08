@@ -14,14 +14,13 @@ import {
   FileSpreadsheet,
   Globe2,
   Info,
-  Languages,
   Maximize2,
-  RefreshCw,
   Search,
   Sparkles,
   UploadCloud,
   X,
 } from "lucide-react";
+import AtlasNav from "./atlas-nav";
 import { feature } from "topojson-client";
 import worldAtlas from "world-atlas/countries-110m.json";
 import countries from "i18n-iso-countries";
@@ -1070,15 +1069,7 @@ export default function Home() {
     <main className="app-shell">
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
-      <header className="topbar">
-        <a href="#top" className="brand" aria-label="SYSU3DAILAB MIND ATLAS home">
-          <span className="brand-mark"><span /><span /></span>
-          <span>{t.brand}</span>
-        </a>
-        <div className="top-actions">
-          <button className="icon-button" onClick={() => setLang(lang === "zh" ? "en" : "zh")} aria-label={t.switchLanguage}><Languages size={17} /></button>
-        </div>
-      </header>
+      <AtlasNav lang={lang} active="atlas" onLanguage={() => setLang(lang === "zh" ? "en" : "zh")} />
 
       <section className="hero" id="top">
         <div className="hero-copy">
