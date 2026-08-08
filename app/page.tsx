@@ -63,6 +63,15 @@ type ChartProps = {
   onClick?: (params: unknown) => void;
 };
 
+type AtlasGeometry = {
+  id?: string | number;
+  properties?: { name?: string };
+};
+
+const atlasGeographies = (worldAtlas as unknown as {
+  objects: { countries: { geometries: AtlasGeometry[] } };
+}).objects.countries.geometries;
+
 const worldGeo = feature(
   worldAtlas as unknown as Parameters<typeof feature>[0],
   (worldAtlas as unknown as { objects: { countries: Parameters<typeof feature>[1] } }).objects.countries,
@@ -76,6 +85,12 @@ if (!worldRegistered) {
 
 countries.registerLocale(enCountries);
 countries.registerLocale(zhCountries);
+
+const atlasNameByNumericCode = new Map(
+  atlasGeographies
+    .filter((geo) => geo.id !== undefined && geo.id !== null && geo.properties?.name)
+    .map((geo) => [String(geo.id).padStart(3, "0"), geo.properties?.name as string]),
+);
 
 const copy = {
   zh: {
@@ -111,6 +126,8 @@ const copy = {
     score: "得分",
     noMatch: "没有匹配的国家",
     search: "搜索国家或代码",
+    sourceFinal: "最终研究数据",
+    sourceLoading: "正在载入最终数据",
     sourceDemo: "合成演示数据",
     sourceUpload: "用户上传面板",
     formatTitle: "数据文件格式",
@@ -184,6 +201,8 @@ const copy = {
     score: "Score",
     noMatch: "No countries match",
     search: "Search country or code",
+    sourceFinal: "Final research dataset",
+    sourceLoading: "Loading final dataset",
     sourceDemo: "Synthetic demo data",
     sourceUpload: "Uploaded panel",
     formatTitle: "CSV data schema",
@@ -276,8 +295,24 @@ const chineseCountryFallbacks: Record<string, string> = {
   Somaliland: "索马里兰",
 };
 
+const legacyCountryCodes: Record<string, string> = {
+  ROM: "ROU",
+  SEB: "SRB",
+  TMP: "TLS",
+  YUG: "MNE",
+};
+
+function canonicalCountryCode(code: string) {
+  return legacyCountryCodes[code] || code;
+}
+
 function localizedCountryName(code: string, fallback: string, lang: Lang) {
-  return countries.getName(code, lang, { select: "official" }) || (lang === "zh" ? chineseCountryFallbacks[fallback] : undefined) || fallback;
+  return countries.getName(canonicalCountryCode(code), lang, { select: "official" }) || (lang === "zh" ? chineseCountryFallbacks[fallback] : undefined) || fallback;
+}
+
+function atlasCountryName(code: string, fallback: string) {
+  const numericCode = countries.alpha3ToNumeric(canonicalCountryCode(code));
+  return (numericCode && atlasNameByNumericCode.get(numericCode)) || fallback;
 }
 
 function localizedContinentName(value: string, lang: Lang) {
@@ -295,11 +330,8 @@ function hashString(value: string) {
 }
 
 function demoData(): Datum[] {
-  const geographies = (worldAtlas as unknown as {
-    objects: { countries: { geometries: Array<{ id?: string; properties?: { name?: string } }> } };
-  }).objects.countries.geometries;
   const rows: Datum[] = [];
-  geographies.forEach((geo, index) => {
+  atlasGeographies.forEach((geo, index) => {
     const name = geo.properties?.name || "Unknown";
     if (name === "Antarctica" || name === "Unknown") return;
     const code = geo.id === undefined || geo.id === null ? String(900 + index) : String(geo.id).padStart(3, "0");
@@ -416,8 +448,8 @@ function MetricGlyph({ metric }: { metric: Metric }) {
 
 export default function Home() {
   const [lang, setLang] = useState<Lang>("zh");
-  const [rows, setRows] = useState<Datum[]>(() => demoData());
-  const [sourceName, setSourceName] = useState("demo");
+  const [rows, setRows] = useState<Datum[]>([]);
+  const [sourceName, setSourceName] = useState("loading");
   const [metric, setMetric] = useState<Metric>("joint");
   const [burdenWeight, setBurdenWeight] = useState(60);
   const [year, setYear] = useState(2019);
@@ -435,6 +467,35 @@ export default function Home() {
     document.title = t.documentTitle;
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
   }, [lang, t.documentTitle]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("./data/main_country_year_panel_231_2000_2019_FINAL.csv")
+      .then((response) => {
+        if (!response.ok) throw new Error("Default panel unavailable");
+        return response.text();
+      })
+      .then((text) => {
+        const parsed = Papa.parse<Record<string, unknown>>(text, { header: true, skipEmptyLines: true });
+        const normalized = normalizeRows(parsed.data);
+        const countryCount = new Set(normalized.map((item) => item.country_code || item.country_name)).size;
+        const availableYears = [...new Set(normalized.map((item) => item.year))].sort((a, b) => a - b);
+        if (countryCount !== 231 || availableYears.length !== 20) throw new Error("Default panel is incomplete");
+        if (!active) return;
+        setRows(normalized);
+        setSourceName("final");
+        setYear(availableYears[availableYears.length - 1]);
+        setSelected(normalized.some((item) => item.country_code === "CHN") ? "CHN" : normalized[0].country_code);
+      })
+      .catch(() => {
+        if (!active) return;
+        setRows(demoData());
+        setSourceName("demo");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const years = useMemo(() => [...new Set(rows.map((row) => row.year))].sort((a, b) => a - b), [rows]);
   const minYear = years[0] ?? 2000;
@@ -545,7 +606,7 @@ export default function Home() {
     const values = ranking.map(metricValue);
     const max = Math.max(...values, 1);
     const mapData = ranking.map((item) => ({
-      name: item.name,
+      name: atlasCountryName(item.code, item.name),
       displayName: countryLabel(item),
       value: metricValue(item),
       code: item.code,
@@ -788,7 +849,7 @@ export default function Home() {
       </section>
 
       <section className="stats-row">
-        <article><span className="stat-index">{t.statA}</span><div><span>{t.countries}</span><strong>{countrySeries.size}</strong><small>{sourceName === "demo" ? t.sourceDemo : t.sourceUpload}</small></div></article>
+        <article><span className="stat-index">{t.statA}</span><div><span>{t.countries}</span><strong>{countrySeries.size}</strong><small>{sourceName === "final" ? t.sourceFinal : sourceName === "loading" ? t.sourceLoading : sourceName === "demo" ? t.sourceDemo : t.sourceUpload}</small></div></article>
         <article><span className="stat-index">{t.statB}</span><div><span>{t.years}</span><strong>{years.length}</strong><small>{minYear} — {maxYear}</small></div></article>
         <article><span className="stat-index">{t.statC}</span><div><span>{t.latest}</span><strong>{year}</strong><small>{metricLabel}</small></div></article>
         <article className="signal-stat"><span className="stat-index">{t.statD}</span><div><span>{t.divergence}</span><strong className={globalDivergence >= 0 ? "warm" : "cool"}>{pct(globalDivergence)}</strong><small>{t.anxiety} − {t.suicide}</small></div><div className="signal-bars">{[3, 6, 4, 8, 12, 9, 14, 18, 15, 22].map((height, index) => <i key={index} style={{ height }} />)}</div></article>
