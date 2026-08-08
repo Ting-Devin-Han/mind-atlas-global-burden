@@ -75,8 +75,7 @@ button { color: inherit; }
 .hero h1 { margin: 0; font-weight: 540; font-size: clamp(44px, 5.3vw, 76px); line-height: .98; letter-spacing: -.055em; max-width: 860px; }
 .hero h1 span { display: block; }
 .hero h1 span:last-child { color: transparent; -webkit-text-stroke: 1px rgba(236,247,251,.76); }
-.hero-copy > p { max-width: 690px; color: #8396a3; font-size: 14px; line-height: 1.8; margin: 26px 0 30px; }
-.hero-actions { display: flex; align-items: center; gap: 10px; }
+.hero-actions { display: flex; align-items: center; gap: 10px; margin-top: 30px; }
 .button-primary, .button-secondary { min-height: 44px; padding: 0 19px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; border-radius: 2px; font-size: 12px; letter-spacing: .035em; }
 .button-primary { background: var(--cyan); color: #061117; box-shadow: 0 0 28px rgba(57,213,239,.12); }
 .button-primary:hover { background: #8ceeff; transform: translateY(-1px); }

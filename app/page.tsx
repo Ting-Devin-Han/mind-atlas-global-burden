@@ -24,6 +24,9 @@ import {
 } from "lucide-react";
 import { feature } from "topojson-client";
 import worldAtlas from "world-atlas/countries-110m.json";
+import countries from "i18n-iso-countries";
+import enCountries from "i18n-iso-countries/langs/en.json";
+import zhCountries from "i18n-iso-countries/langs/zh.json";
 
 type Lang = "zh" | "en";
 type Metric = "joint" | "anxiety" | "suicide" | "divergence";
@@ -71,16 +74,15 @@ if (!worldRegistered) {
   worldRegistered = true;
 }
 
+countries.registerLocale(enCountries);
+countries.registerLocale(zhCountries);
+
 const copy = {
   zh: {
     brand: "SYSU3DAILAB // MIND ATLAS",
-    kicker: "GLOBAL MENTAL BURDEN OBSERVATORY",
+    documentTitle: "SYSU3DAILAB // MIND ATLAS — 全球心理健康负担交互式观测台",
     title: "全球心理健康负担\n交互式观测台",
-    subtitle: "将焦虑患病率与自杀死亡率放在同一坐标系中。上传国家—年份面板，即时重算排名、轨迹、空间格局与负担分化。",
     upload: "上传数据",
-    replace: "替换数据",
-    uploadHint: "拖入 CSV，或点击选择文件",
-    local: "数据仅在此浏览器处理",
     schema: "查看数据格式",
     export: "导出当前排名",
     countries: "国家 / 地区",
@@ -92,15 +94,15 @@ const copy = {
     trendTitle: "年度轨迹",
     trendGlobal: "全球中位数（2000=100）",
     trendCountry: "国家原始值",
-    ringTitle: "RankScore 轨道",
+    ringTitle: "综合评分轨道",
     ringSub: "排名越靠前，轨道越接近外圈",
     rankTitle: "双结局排名引擎",
     rankSub: "支持按名称检索并即时切换指标",
     methodology: "计算方法",
     burdenWeight: "长期负担权重",
     trendWeight: "变化趋势权重",
-    methodologyText: "综合 RankScore = 长期联合负担百分位 × 权重 + 两项结局相对首年的联合变化百分位 × 剩余权重。两项结局在计算前分别转为国家间百分位，避免单位差异主导结果。",
-    joint: "综合 RankScore",
+    methodologyText: "综合评分 = 长期联合负担百分位 × 权重 + 两项结局相对首年的联合变化百分位 × 剩余权重。两项结局在计算前分别转为国家间百分位，避免单位差异主导结果。",
+    joint: "综合评分",
     anxiety: "焦虑患病率",
     suicide: "自杀死亡率",
     divergenceMetric: "结局分化",
@@ -111,31 +113,49 @@ const copy = {
     search: "搜索国家或代码",
     sourceDemo: "合成演示数据",
     sourceUpload: "用户上传面板",
-    live: "LIVE MODEL",
-    formatTitle: "CSV 数据格式",
-    formatText: "每行表示一个国家（或地区）在一个年份的观测。系统也兼容 Code、NAME、Sui_R、axi 等现有字段名。",
+    formatTitle: "数据文件格式",
+    formatText: "每行表示一个国家或地区在一个年份的观测。系统同时兼容现有数据表中的字段名称。",
     required: "必需字段",
     optional: "可选字段",
     close: "关闭",
     downloadTemplate: "下载模板",
     invalid: "无法读取数据。请检查字段名、年份和数值列。",
     loaded: "数据已载入，全部视图已更新",
-    top: "TOP 36",
+    top: "前36名",
     all: "全部国家",
     selectYear: "选择年份",
     currentValue: "当前值",
     sinceFirst: "较首年",
     globalMedian: "全球中位数",
+    spatialSection: "02 / 空间分布",
+    temporalSection: "03 / 时间变化",
+    orbitSection: "04 / 排名轨道",
+    rankingSection: "05 / 排名",
+    dataInput: "数据输入",
+    scoreEngine: "评分计算",
+    noData: "暂无数据",
+    high: "高",
+    low: "低",
+    topSix: "前6名",
+    switchLanguage: "切换至英文",
+    rankingMetric: "排名指标",
+    expand: "展开",
+    footerNote: "国家层面的探索性可视化 · 相关关系与排名不代表个体风险或因果关系。",
+    areas: "个国家或地区",
+    version: "版本",
+    scoreFormula: "综合评分",
+    burdenPercentile: "负担百分位",
+    changePercentile: "变化百分位",
+    statA: "一",
+    statB: "二",
+    statC: "三",
+    statD: "四",
   },
   en: {
     brand: "SYSU3DAILAB // MIND ATLAS",
-    kicker: "GLOBAL MENTAL BURDEN OBSERVATORY",
+    documentTitle: "SYSU3DAILAB // MIND ATLAS — Global Mental Burden Observatory",
     title: "An interactive atlas of\nglobal mental-health burden",
-    subtitle: "Place anxiety prevalence and suicide mortality on one analytical surface. Upload a country–year panel to recalculate rankings, trajectories, spatial patterns and outcome divergence instantly.",
     upload: "Upload data",
-    replace: "Replace data",
-    uploadHint: "Drop a CSV here, or choose a file",
-    local: "Processed locally in this browser",
     schema: "View data schema",
     export: "Export current ranking",
     countries: "Countries / areas",
@@ -166,7 +186,6 @@ const copy = {
     search: "Search country or code",
     sourceDemo: "Synthetic demo data",
     sourceUpload: "Uploaded panel",
-    live: "LIVE MODEL",
     formatTitle: "CSV data schema",
     formatText: "Each row represents one country or area in one year. Existing field names such as Code, NAME, Sui_R and axi are also accepted.",
     required: "Required fields",
@@ -181,6 +200,29 @@ const copy = {
     currentValue: "Current value",
     sinceFirst: "Since baseline",
     globalMedian: "Global median",
+    spatialSection: "02 / SPATIAL",
+    temporalSection: "03 / TEMPORAL",
+    orbitSection: "04 / ORBIT",
+    rankingSection: "05 / RANKING",
+    dataInput: "DATA INPUT",
+    scoreEngine: "RANKSCORE ENGINE",
+    noData: "No data",
+    high: "HIGH",
+    low: "LOW",
+    topSix: "TOP 6",
+    switchLanguage: "Switch to Chinese",
+    rankingMetric: "Ranking metric",
+    expand: "Expand",
+    footerNote: "Exploratory country-level visualization · Associations and rankings do not imply individual risk or causality.",
+    areas: "AREAS",
+    version: "v",
+    scoreFormula: "RANK SCORE",
+    burdenPercentile: "BURDEN PERCENTILE",
+    changePercentile: "CHANGE PERCENTILE",
+    statA: "A",
+    statB: "B",
+    statC: "C",
+    statD: "D",
   },
 };
 
@@ -202,6 +244,47 @@ const aliases: Record<string, string[]> = {
   continent: ["continent", "region", "world_region"],
 };
 
+const continentKeys: Record<string, "asia" | "europe" | "africa" | "northAmerica" | "southAmerica" | "oceania" | "other"> = {
+  asia: "asia",
+  亚洲: "asia",
+  europe: "europe",
+  欧洲: "europe",
+  africa: "africa",
+  非洲: "africa",
+  "north america": "northAmerica",
+  北美洲: "northAmerica",
+  "south america": "southAmerica",
+  南美洲: "southAmerica",
+  oceania: "oceania",
+  大洋洲: "oceania",
+  other: "other",
+  其他: "other",
+};
+
+const continentNames = {
+  asia: { zh: "亚洲", en: "Asia" },
+  europe: { zh: "欧洲", en: "Europe" },
+  africa: { zh: "非洲", en: "Africa" },
+  northAmerica: { zh: "北美洲", en: "North America" },
+  southAmerica: { zh: "南美洲", en: "South America" },
+  oceania: { zh: "大洋洲", en: "Oceania" },
+  other: { zh: "其他", en: "Other" },
+};
+
+const chineseCountryFallbacks: Record<string, string> = {
+  "N. Cyprus": "北塞浦路斯",
+  Somaliland: "索马里兰",
+};
+
+function localizedCountryName(code: string, fallback: string, lang: Lang) {
+  return countries.getName(code, lang, { select: "official" }) || (lang === "zh" ? chineseCountryFallbacks[fallback] : undefined) || fallback;
+}
+
+function localizedContinentName(value: string, lang: Lang) {
+  const key = continentKeys[value.trim().toLowerCase()];
+  return key ? continentNames[key][lang] : value;
+}
+
 function hashString(value: string) {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
@@ -213,13 +296,13 @@ function hashString(value: string) {
 
 function demoData(): Datum[] {
   const geographies = (worldAtlas as unknown as {
-    objects: { countries: { geometries: Array<{ id: string; properties?: { name?: string } }> } };
+    objects: { countries: { geometries: Array<{ id?: string; properties?: { name?: string } }> } };
   }).objects.countries.geometries;
   const rows: Datum[] = [];
-  geographies.forEach((geo) => {
+  geographies.forEach((geo, index) => {
     const name = geo.properties?.name || "Unknown";
     if (name === "Antarctica" || name === "Unknown") return;
-    const code = String(geo.id).padStart(3, "0");
+    const code = geo.id === undefined || geo.id === null ? String(900 + index) : String(geo.id).padStart(3, "0");
     const seed = hashString(`${code}-${name}`);
     const baseSuicide = 3.2 + (seed % 1900) / 100;
     const baseAnxiety = 2.1 + ((seed >> 5) % 560) / 100;
@@ -345,6 +428,13 @@ export default function Home() {
   const [uploadMessage, setUploadMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const t = copy[lang];
+  const countryLabel = useCallback((item: Pick<RankedCountry, "code" | "name">) => localizedCountryName(item.code, item.name, lang), [lang]);
+  const continentLabel = useCallback((value: string) => localizedContinentName(value, lang), [lang]);
+
+  useEffect(() => {
+    document.title = t.documentTitle;
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+  }, [lang, t.documentTitle]);
 
   const years = useMemo(() => [...new Set(rows.map((row) => row.year))].sort((a, b) => a - b), [rows]);
   const minYear = years[0] ?? 2000;
@@ -439,8 +529,8 @@ export default function Home() {
   const filteredRanking = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return sortedRanking;
-    return sortedRanking.filter((item) => item.name.toLowerCase().includes(normalized) || item.code.toLowerCase().includes(normalized));
-  }, [query, sortedRanking]);
+    return sortedRanking.filter((item) => countryLabel(item).toLowerCase().includes(normalized) || item.name.toLowerCase().includes(normalized) || item.code.toLowerCase().includes(normalized));
+  }, [countryLabel, query, sortedRanking]);
 
   const globalSeries = useMemo(() => years.map((activeYear) => {
     const inYear = rows.filter((row) => row.year === activeYear);
@@ -456,6 +546,7 @@ export default function Home() {
     const max = Math.max(...values, 1);
     const mapData = ranking.map((item) => ({
       name: item.name,
+      displayName: countryLabel(item),
       value: metricValue(item),
       code: item.code,
       suicide: item.suicide,
@@ -471,9 +562,9 @@ export default function Home() {
         borderColor: "rgba(116, 227, 255, .3)",
         textStyle: { color: "#eef9ff", fontFamily: "Arial" },
         formatter: (params: unknown) => {
-          const p = params as { data?: { name: string; code: string; suicide: number; anxiety: number; joint: number } };
-          if (!p.data) return "No data";
-          return `<div class="map-tip"><b>${p.data.name}</b><span>${p.data.code}</span><hr/><div>Suicide <strong>${fmt(p.data.suicide)}</strong></div><div>Anxiety <strong>${fmt(p.data.anxiety)}%</strong></div><div>RankScore <strong>${fmt(p.data.joint, 1)}</strong></div></div>`;
+          const p = params as { data?: { displayName: string; code: string; suicide: number; anxiety: number; joint: number } };
+          if (!p.data) return t.noData;
+          return `<div class="map-tip"><b>${p.data.displayName}</b><span>${p.data.code}</span><hr/><div>${t.suicide} <strong>${fmt(p.data.suicide)}</strong></div><div>${t.anxiety} <strong>${fmt(p.data.anxiety)}%</strong></div><div>${t.joint} <strong>${fmt(p.data.joint, 1)}</strong></div></div>`;
         },
       },
       visualMap: {
@@ -484,7 +575,7 @@ export default function Home() {
         orient: "horizontal",
         itemWidth: 98,
         itemHeight: 7,
-        text: ["HIGH", "LOW"],
+        text: [t.high, t.low],
         textStyle: { color: "#6f8190", fontSize: 9, fontFamily: "Arial" },
         calculable: false,
         inRange: { color: ["#101c25", "#135069", "#1e9fc2", "#f49a78", "#ff4f68"] },
@@ -504,7 +595,7 @@ export default function Home() {
         select: { label: { show: false }, itemStyle: { areaColor: "#f6d365", borderColor: "#ffffff" } },
       }],
     };
-  }, [metricValue, ranking]);
+  }, [countryLabel, metricValue, ranking, t.anxiety, t.high, t.joint, t.low, t.noData, t.suicide]);
 
   const handleMapClick = useCallback((params: unknown) => {
     const p = params as { data?: { code?: string } };
@@ -534,7 +625,7 @@ export default function Home() {
       ],
       graphic: [
         { type: "text", left: 0, top: 30, style: { text: t.trendGlobal, fill: "#687b88", font: "10px Arial" } },
-        { type: "text", left: 0, top: "53%", style: { text: `${t.trendCountry} · ${selectedRank?.name || "—"}`, fill: "#687b88", font: "10px Arial" } },
+        { type: "text", left: 0, top: "53%", style: { text: `${t.trendCountry} · ${selectedRank ? countryLabel(selectedRank) : "—"}`, fill: "#687b88", font: "10px Arial" } },
       ],
       series: [
         { name: t.anxiety, type: "line", xAxisIndex: 0, yAxisIndex: 0, showSymbol: false, smooth: 0.35, data: globalSeries.map((item) => (item.anxiety / globalBaseAnxiety) * 100), lineStyle: { color: "#ff5b78", width: 2 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "rgba(255,91,120,.24)" }, { offset: 1, color: "rgba(255,91,120,0)" }]) } },
@@ -543,7 +634,7 @@ export default function Home() {
         { name: t.anxiety, type: "line", xAxisIndex: 1, yAxisIndex: 2, showSymbol: false, smooth: 0.3, data: countryAnxiety, lineStyle: { color: "#ff5b78", width: 2.4 }, symbol: "circle" },
       ],
     };
-  }, [globalBaseAnxiety, globalBaseSuicide, globalSeries, selectedRank?.name, selectedRows, t.anxiety, t.suicide, t.trendCountry, t.trendGlobal, years]);
+  }, [countryLabel, globalBaseAnxiety, globalBaseSuicide, globalSeries, selectedRank, selectedRows, t.anxiety, t.suicide, t.trendCountry, t.trendGlobal, years]);
 
   const ringCountries = sortedRanking.slice(0, 36);
   const ringOption = useMemo<echarts.EChartsOption>(() => ({
@@ -557,10 +648,10 @@ export default function Home() {
       formatter: (params: unknown) => {
         const p = params as { name: string; value: number; dataIndex: number };
         const country = ringCountries[p.dataIndex];
-        return `<b>#${p.dataIndex + 1} ${p.name}</b><br/>RankScore&nbsp;&nbsp;<strong>${fmt(country?.joint || p.value, 1)}</strong><br/>Anxiety&nbsp;&nbsp;${fmt(country?.anxiety || 0)}%<br/>Suicide&nbsp;&nbsp;${fmt(country?.suicide || 0)}`;
+        return `<b>#${p.dataIndex + 1} ${p.name}</b><br/>${t.joint}&nbsp;&nbsp;<strong>${fmt(country?.joint || p.value, 1)}</strong><br/>${t.anxiety}&nbsp;&nbsp;${fmt(country?.anxiety || 0)}%<br/>${t.suicide}&nbsp;&nbsp;${fmt(country?.suicide || 0)}`;
       },
     },
-    angleAxis: { type: "category", data: ringCountries.map((item) => item.name), startAngle: 90, clockwise: true, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false } },
+    angleAxis: { type: "category", data: ringCountries.map(countryLabel), startAngle: 90, clockwise: true, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false } },
     radiusAxis: { min: 0, max: Math.max(...ringCountries.map(metricValue), 1), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false }, splitLine: { lineStyle: { color: ["rgba(111,132,145,.11)"] } }, splitNumber: 4 },
     polar: { radius: ["22%", "85%"] },
     series: [{
@@ -569,7 +660,7 @@ export default function Home() {
       roundCap: true,
       barWidth: "66%",
       data: ringCountries.map((item, index) => ({
-        name: item.name,
+        name: countryLabel(item),
         value: metricValue(item),
         code: item.code,
         itemStyle: {
@@ -584,7 +675,7 @@ export default function Home() {
       { type: "text", left: "center", top: "43%", style: { text: t.top, fill: "#718492", font: "600 10px Arial", textAlign: "center" } },
       { type: "text", left: "center", top: "49%", style: { text: String(ringCountries.length), fill: "#eefaff", font: "700 28px Arial", textAlign: "center" } },
     ],
-  }), [metricValue, ringCountries, selectedCode, t.top]);
+  }), [countryLabel, metricValue, ringCountries, selectedCode, t.anxiety, t.joint, t.suicide, t.top]);
 
   const handleRingClick = useCallback((params: unknown) => {
     const p = params as { data?: { code?: string } };
@@ -654,14 +745,13 @@ export default function Home() {
           <span>{t.brand}</span>
         </a>
         <div className="top-actions">
-          <button className="icon-button" onClick={() => setLang(lang === "zh" ? "en" : "zh")} aria-label="Switch language"><Languages size={17} /><span>{lang === "zh" ? "EN" : "中"}</span></button>
+          <button className="icon-button" onClick={() => setLang(lang === "zh" ? "en" : "zh")} aria-label={t.switchLanguage}><Languages size={17} /></button>
         </div>
       </header>
 
       <section className="hero" id="top">
         <div className="hero-copy">
           <h1>{t.title.split("\n").map((line) => <span key={line}>{line}</span>)}</h1>
-          <p>{t.subtitle}</p>
           <div className="hero-actions">
             <input ref={inputRef} type="file" accept=".csv,text/csv" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) loadFile(file); event.target.value = ""; }} />
             <button className="button-primary" onClick={() => inputRef.current?.click()}><UploadCloud size={18} />{t.upload}</button>
@@ -674,7 +764,7 @@ export default function Home() {
       {uploadMessage && <div className={`toast ${uploadMessage === t.invalid ? "error" : ""}`}><Info size={16} />{uploadMessage}</div>}
 
       <section className="control-strip">
-        <div className="metric-tabs" role="tablist" aria-label="Ranking metric">
+        <div className="metric-tabs" role="tablist" aria-label={t.rankingMetric}>
           {(["joint", "anxiety", "suicide", "divergence"] as Metric[]).map((item) => (
             <button key={item} className={metric === item ? "active" : ""} onClick={() => setMetric(item)} role="tab" aria-selected={metric === item}>
               <MetricGlyph metric={item} />{t[item === "divergence" ? "divergenceMetric" : item]}
@@ -698,30 +788,30 @@ export default function Home() {
       </section>
 
       <section className="stats-row">
-        <article><span className="stat-index">A</span><div><span>{t.countries}</span><strong>{countrySeries.size}</strong><small>{sourceName === "demo" ? t.sourceDemo : t.sourceUpload}</small></div></article>
-        <article><span className="stat-index">B</span><div><span>{t.years}</span><strong>{years.length}</strong><small>{minYear} — {maxYear}</small></div></article>
-        <article><span className="stat-index">C</span><div><span>{t.latest}</span><strong>{year}</strong><small>{metricLabel}</small></div></article>
-        <article className="signal-stat"><span className="stat-index">D</span><div><span>{t.divergence}</span><strong className={globalDivergence >= 0 ? "warm" : "cool"}>{pct(globalDivergence)}</strong><small>{t.anxiety} − {t.suicide}</small></div><div className="signal-bars">{[3, 6, 4, 8, 12, 9, 14, 18, 15, 22].map((height, index) => <i key={index} style={{ height }} />)}</div></article>
+        <article><span className="stat-index">{t.statA}</span><div><span>{t.countries}</span><strong>{countrySeries.size}</strong><small>{sourceName === "demo" ? t.sourceDemo : t.sourceUpload}</small></div></article>
+        <article><span className="stat-index">{t.statB}</span><div><span>{t.years}</span><strong>{years.length}</strong><small>{minYear} — {maxYear}</small></div></article>
+        <article><span className="stat-index">{t.statC}</span><div><span>{t.latest}</span><strong>{year}</strong><small>{metricLabel}</small></div></article>
+        <article className="signal-stat"><span className="stat-index">{t.statD}</span><div><span>{t.divergence}</span><strong className={globalDivergence >= 0 ? "warm" : "cool"}>{pct(globalDivergence)}</strong><small>{t.anxiety} − {t.suicide}</small></div><div className="signal-bars">{[3, 6, 4, 8, 12, 9, 14, 18, 15, 22].map((height, index) => <i key={index} style={{ height }} />)}</div></article>
       </section>
 
       <section className="dashboard-grid">
         <article className="panel map-panel">
           <div className="panel-head">
-            <div><span className="panel-number">02 / SPATIAL</span><h2>{t.mapTitle}</h2><p>{t.mapSub}</p></div>
+            <div><span className="panel-number">{t.spatialSection}</span><h2>{t.mapTitle}</h2><p>{t.mapSub}</p></div>
             <div className="panel-badge"><Globe2 size={14} />{metricLabel} · {year}</div>
           </div>
           <EChart option={mapOption} className="map-chart" onClick={handleMapClick} />
           <div className="map-country-card">
             <span>{t.selectedCountry}</span>
-            <strong>{selectedRank?.name || "—"}</strong>
+            <strong>{selectedRank ? countryLabel(selectedRank) : "—"}</strong>
             <div><em>#{sortedRanking.findIndex((item) => item.code === selectedCode) + 1}</em><small>{metricLabel}</small></div>
           </div>
         </article>
 
         <article className="panel trend-panel">
           <div className="panel-head">
-            <div><span className="panel-number">03 / TEMPORAL</span><h2>{t.trendTitle}</h2><p>{selectedRank?.name || t.globalMedian}</p></div>
-            <button className="ghost-icon" aria-label="Expand"><Maximize2 size={15} /></button>
+            <div><span className="panel-number">{t.temporalSection}</span><h2>{t.trendTitle}</h2><p>{selectedRank ? countryLabel(selectedRank) : t.globalMedian}</p></div>
+            <button className="ghost-icon" aria-label={t.expand}><Maximize2 size={15} /></button>
           </div>
           <EChart option={trendOption} className="trend-chart" />
           {selectedRank && <div className="country-readout">
@@ -732,16 +822,16 @@ export default function Home() {
 
         <article className="panel ring-panel">
           <div className="panel-head">
-            <div><span className="panel-number">04 / ORBIT</span><h2>{t.ringTitle}</h2><p>{t.ringSub}</p></div>
+            <div><span className="panel-number">{t.orbitSection}</span><h2>{t.ringTitle}</h2><p>{t.ringSub}</p></div>
             <button className="ghost-icon" onClick={() => setMethodOpen(true)} aria-label={t.methodology}><CircleHelp size={16} /></button>
           </div>
           <EChart option={ringOption} className="ring-chart" onClick={handleRingClick} />
-          <div className="ring-legend"><span><i className="legend-hot" />TOP 6</span><span><i className="legend-warm" />7—18</span><span><i className="legend-cool" />19—36</span></div>
+          <div className="ring-legend"><span><i className="legend-hot" />{t.topSix}</span><span><i className="legend-warm" />7—18</span><span><i className="legend-cool" />19—36</span></div>
         </article>
 
         <article className="panel ranking-panel">
           <div className="panel-head ranking-head">
-            <div><span className="panel-number">05 / RANKING</span><h2>{t.rankTitle}</h2><p>{t.rankSub}</p></div>
+            <div><span className="panel-number">{t.rankingSection}</span><h2>{t.rankTitle}</h2><p>{t.rankSub}</p></div>
             <button className="ghost-icon" onClick={exportRanking} aria-label={t.export}><Download size={16} /></button>
           </div>
           <div className="ranking-toolbar">
@@ -754,7 +844,7 @@ export default function Home() {
               const actualRank = sortedRanking.findIndex((entry) => entry.code === item.code) + 1;
               return <button key={`${item.code}-${item.name}`} className={selectedCode === item.code ? "selected" : ""} onClick={() => setSelected(item.code)}>
                 <span className="rank-number">{String(actualRank).padStart(2, "0")}</span>
-                <span className="country-cell"><i>{item.code.slice(0, 3)}</i><span><strong>{item.name}</strong><small>{item.continent}</small></span></span>
+                <span className="country-cell"><i>{item.code.slice(0, 3)}</i><span><strong>{countryLabel(item)}</strong><small>{continentLabel(item.continent)}</small></span></span>
                 <span><b>#{item.anxietyRank}</b><small>{fmt(item.anxiety)}%</small></span>
                 <span><b>#{item.suicideRank}</b><small>{fmt(item.suicide)}</small></span>
                 <span className="score-cell"><b>{fmt(metricValue(item), 1)}</b><i style={{ width: `${Math.min(100, (metricValue(item) / Math.max(metricValue(sortedRanking[0]), 1)) * 100)}%` }} /></span>
@@ -767,27 +857,27 @@ export default function Home() {
 
       <footer>
         <div className="brand footer-brand"><span className="brand-mark"><span /><span /></span><span>{t.brand}</span></div>
-        <p>Exploratory country-level visualization · Associations and rankings do not imply individual risk or causality.</p>
-        <span>{year} / {countrySeries.size} AREAS / v0.1</span>
+        <p>{t.footerNote}</p>
+        <span>{year} / {countrySeries.size} {t.areas} / {t.version}0.1</span>
       </footer>
 
       {(schemaOpen || methodOpen) && <div className="modal-backdrop" onMouseDown={() => { setSchemaOpen(false); setMethodOpen(false); }}>
         <div className="modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
           <button className="modal-close" onClick={() => { setSchemaOpen(false); setMethodOpen(false); }} aria-label={t.close}><X size={18} /></button>
           {schemaOpen ? <>
-            <span className="modal-kicker"><FileSpreadsheet size={15} />DATA INPUT</span>
+            <span className="modal-kicker"><FileSpreadsheet size={15} />{t.dataInput}</span>
             <h3>{t.formatTitle}</h3>
             <p>{t.formatText}</p>
             <div className="schema-box"><strong>{t.required}</strong><code>country_code</code><code>country_name</code><code>year</code><code>suicide_rate</code><code>anxiety_disorder_prevalence</code></div>
             <div className="schema-box optional"><strong>{t.optional}</strong><code>continent</code></div>
             <button className="button-primary modal-action" onClick={downloadTemplate}><Download size={17} />{t.downloadTemplate}</button>
           </> : <>
-            <span className="modal-kicker"><Sparkles size={15} />RANKSCORE ENGINE</span>
+            <span className="modal-kicker"><Sparkles size={15} />{t.scoreEngine}</span>
             <h3>{t.methodology}</h3>
             <p>{t.methodologyText}</p>
             <div className="weight-readout"><div><span>{t.burdenWeight}</span><strong>{burdenWeight}%</strong></div><div><span>{t.trendWeight}</span><strong>{100 - burdenWeight}%</strong></div></div>
             <input className="weight-slider" type="range" min="0" max="100" step="5" value={burdenWeight} style={{ "--range-progress": `${burdenWeight}%` } as React.CSSProperties} onChange={(event) => setBurdenWeight(Number(event.target.value))} />
-            <div className="formula"><span>RANK<sup>SCORE</sup></span><b>=</b><em>{(burdenWeight / 100).toFixed(2)} · P<sub>burden</sub></em><b>+</b><em>{((100 - burdenWeight) / 100).toFixed(2)} · P<sub>change</sub></em></div>
+            <div className="formula"><span>{t.scoreFormula}</span><b>=</b><em>{(burdenWeight / 100).toFixed(2)} · {t.burdenPercentile}</em><b>+</b><em>{((100 - burdenWeight) / 100).toFixed(2)} · {t.changePercentile}</em></div>
           </>}
         </div>
       </div>}
