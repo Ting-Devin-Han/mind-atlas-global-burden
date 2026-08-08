@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 import { feature } from "topojson-client";
 import worldAtlas from "world-atlas/countries-110m.json";
-import isoCountries from "i18n-iso-countries";
 
 type Lang = "zh" | "en";
 type Metric = "joint" | "anxiety" | "suicide" | "divergence";
@@ -217,8 +216,7 @@ function demoData(): Datum[] {
   geographies.forEach((geo) => {
     const name = geo.properties?.name || "Unknown";
     if (name === "Antarctica" || name === "Unknown") return;
-    const numeric = String(geo.id).padStart(3, "0");
-    const code = isoCountries.numericToAlpha3(numeric) || numeric;
+    const code = String(geo.id).padStart(3, "0");
     const seed = hashString(`${code}-${name}`);
     const baseSuicide = 3.2 + (seed % 1900) / 100;
     const baseAnxiety = 2.1 + ((seed >> 5) % 560) / 100;
@@ -268,8 +266,8 @@ function normalizeRows(input: Record<string, unknown>[]): Datum[] {
     .map((row) => {
       const codeRaw = String(field(row, "country_code") ?? "").trim().toUpperCase();
       const nameRaw = String(field(row, "country_name") ?? "").trim();
-      const code = codeRaw || isoCountries.getAlpha3Code(nameRaw, "en") || "";
-      const name = nameRaw || isoCountries.getName(code, "en") || code;
+      const code = codeRaw || nameRaw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+      const name = nameRaw || code;
       const year = Number(field(row, "year"));
       const suicide = Number(field(row, "suicide_rate"));
       const anxiety = Number(field(row, "anxiety_disorder_prevalence"));
