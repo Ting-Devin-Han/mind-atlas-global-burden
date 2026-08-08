@@ -665,8 +665,6 @@ export default function Home() {
         <div className="topbar-center">
           <span className="status-dot" />
           <span>{t.live}</span>
-          <span className="divider" />
-          <span>{sourceName === "demo" ? t.sourceDemo : sourceName}</span>
         </div>
         <div className="top-actions">
           <button className="icon-button" onClick={() => setLang(lang === "zh" ? "en" : "zh")} aria-label="Switch language"><Languages size={17} /><span>{lang === "zh" ? "EN" : "中"}</span></button>

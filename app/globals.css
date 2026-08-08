@@ -60,7 +60,6 @@ button { color: inherit; }
 .brand-mark > span:last-child { position: absolute; width: 6px; height: 6px; background: var(--coral); border-radius: 50%; right: 1px; top: 2px; box-shadow: 0 0 9px var(--coral); }
 .topbar-center { color: #70828e; font-size: 10px; letter-spacing: .14em; display: flex; align-items: center; gap: 9px; text-transform: uppercase; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--acid); box-shadow: 0 0 10px rgba(212,243,106,.75); }
-.divider { width: 1px; height: 14px; background: var(--line); }
 .top-actions { justify-self: end; display: flex; align-items: center; gap: 9px; }
 .icon-button, .primary-small, .button-primary, .button-secondary, .ghost-icon { border: 0; cursor: pointer; transition: .2s ease; }
 .icon-button { background: transparent; display: flex; gap: 7px; align-items: center; color: #8ca0ad; font-size: 11px; padding: 9px; }
