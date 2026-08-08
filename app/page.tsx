@@ -72,10 +72,114 @@ const atlasGeographies = (worldAtlas as unknown as {
   objects: { countries: { geometries: AtlasGeometry[] } };
 }).objects.countries.geometries;
 
-const worldGeo = feature(
+type MapPosition = [number, number];
+type MapRing = MapPosition[];
+type MapPolygon = MapRing[];
+
+function sameMapPosition(a: MapPosition, b: MapPosition) {
+  return Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
+}
+
+function closeMapRing(points: MapRing) {
+  const clean: MapRing = [];
+  points.forEach((point) => {
+    if (!clean.length || !sameMapPosition(clean[clean.length - 1], point)) clean.push(point);
+  });
+  if (clean.length > 1 && sameMapPosition(clean[0], clean[clean.length - 1])) clean.pop();
+  if (clean.length < 3) return [];
+  clean.push([...clean[0]] as MapPosition);
+  return clean;
+}
+
+function unwrapMapRing(ring: MapRing) {
+  const vertices = ring.length > 1 && sameMapPosition(ring[0], ring[ring.length - 1]) ? ring.slice(0, -1) : ring;
+  if (!vertices.length) return [];
+  const unwrapped: MapRing = [[...vertices[0]] as MapPosition];
+  for (let index = 1; index < vertices.length; index += 1) {
+    let longitude = vertices[index][0];
+    const previousLongitude = unwrapped[unwrapped.length - 1][0];
+    while (longitude - previousLongitude > 180) longitude -= 360;
+    while (longitude - previousLongitude < -180) longitude += 360;
+    unwrapped.push([longitude, vertices[index][1]]);
+  }
+  return closeMapRing(unwrapped);
+}
+
+function clipMapRing(ring: MapRing, boundary: number, keepGreater: boolean) {
+  const vertices = ring.length > 1 && sameMapPosition(ring[0], ring[ring.length - 1]) ? ring.slice(0, -1) : ring;
+  if (!vertices.length) return [];
+  const output: MapRing = [];
+  const inside = (point: MapPosition) => keepGreater ? point[0] >= boundary - 1e-9 : point[0] <= boundary + 1e-9;
+  const intersection = (start: MapPosition, end: MapPosition): MapPosition => {
+    const ratio = (boundary - start[0]) / (end[0] - start[0]);
+    return [boundary, start[1] + (end[1] - start[1]) * ratio];
+  };
+  let previous = vertices[vertices.length - 1];
+  let previousInside = inside(previous);
+  vertices.forEach((current) => {
+    const currentInside = inside(current);
+    if (currentInside) {
+      if (!previousInside) output.push(intersection(previous, current));
+      output.push(current);
+    } else if (previousInside) {
+      output.push(intersection(previous, current));
+    }
+    previous = current;
+    previousInside = currentInside;
+  });
+  return closeMapRing(output);
+}
+
+function splitMapRingAtDateline(ring: MapRing) {
+  const unwrapped = unwrapMapRing(ring);
+  if (!unwrapped.length) return [];
+  const longitudes = unwrapped.map((point) => point[0]);
+  const minimum = Math.min(...longitudes);
+  const maximum = Math.max(...longitudes);
+  const firstShift = Math.ceil((-180 - maximum) / 360);
+  const lastShift = Math.floor((180 - minimum) / 360);
+  const parts: MapRing[] = [];
+  for (let shift = firstShift; shift <= lastShift; shift += 1) {
+    const shifted = unwrapped.map(([longitude, latitude]) => [longitude + shift * 360, latitude] as MapPosition);
+    const leftClipped = clipMapRing(shifted, -180, true);
+    const clipped = leftClipped.length ? clipMapRing(leftClipped, 180, false) : [];
+    if (clipped.length >= 4) parts.push(clipped);
+  }
+  return parts;
+}
+
+function ringCrossesDateline(ring: MapRing) {
+  return ring.some((point, index) => index > 0 && Math.abs(point[0] - ring[index - 1][0]) > 180);
+}
+
+function repairWorldMap(collection: GeoJSON.FeatureCollection) {
+  const repairedFeatures = collection.features
+    .filter((mapFeature) => mapFeature.properties?.name !== "Antarctica")
+    .map((mapFeature) => {
+      const geometry = mapFeature.geometry;
+      if (!geometry || (geometry.type !== "Polygon" && geometry.type !== "MultiPolygon")) return mapFeature;
+      const polygons = (geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates) as MapPolygon[];
+      const repairedPolygons = polygons.flatMap((polygon) => {
+        const outerRing = polygon[0];
+        if (!outerRing || !ringCrossesDateline(outerRing)) return [polygon];
+        return splitMapRingAtDateline(outerRing).map((part) => [part]);
+      });
+      return {
+        ...mapFeature,
+        geometry: {
+          type: "MultiPolygon" as const,
+          coordinates: repairedPolygons,
+        },
+      };
+    });
+  return { ...collection, features: repairedFeatures } as GeoJSON.FeatureCollection;
+}
+
+const rawWorldGeo = feature(
   worldAtlas as unknown as Parameters<typeof feature>[0],
   (worldAtlas as unknown as { objects: { countries: Parameters<typeof feature>[1] } }).objects.countries,
 ) as unknown as GeoJSON.FeatureCollection;
+const worldGeo = repairWorldMap(rawWorldGeo);
 
 let worldRegistered = false;
 if (!worldRegistered) {
