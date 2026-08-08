@@ -1,4 +1,4 @@
-name: Deploy MIND ATLAS to GitHub Pages
+name: Deploy SYSU3DAILAB MIND ATLAS to GitHub Pages
 
 on:
   push:

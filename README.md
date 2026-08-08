@@ -1,4 +1,4 @@
-# MIND//ATLAS — Global Mental Burden Observatory
+# SYSU3DAILAB // MIND ATLAS — Global Mental Burden Observatory
 
 An interactive, browser-only dashboard for comparing anxiety-disorder prevalence and suicide mortality across countries and years. Upload a country–year CSV panel to recalculate outcome-specific rankings, a composite RankScore, annual trajectories, outcome divergence and global map views in real time.
 

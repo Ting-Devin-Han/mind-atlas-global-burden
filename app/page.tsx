@@ -74,7 +74,7 @@ if (!worldRegistered) {
 
 const copy = {
   zh: {
-    brand: "MIND//ATLAS",
+    brand: "SYSU3DAILAB // MIND ATLAS",
     kicker: "GLOBAL MENTAL BURDEN OBSERVATORY",
     title: "全球心理健康负担\n交互式观测台",
     subtitle: "将焦虑患病率与自杀死亡率放在同一坐标系中。上传国家—年份面板，即时重算排名、轨迹、空间格局与负担分化。",
@@ -129,7 +129,7 @@ const copy = {
     globalMedian: "全球中位数",
   },
   en: {
-    brand: "MIND//ATLAS",
+    brand: "SYSU3DAILAB // MIND ATLAS",
     kicker: "GLOBAL MENTAL BURDEN OBSERVATORY",
     title: "An interactive atlas of\nglobal mental-health burden",
     subtitle: "Place anxiety prevalence and suicide mortality on one analytical surface. Upload a country–year panel to recalculate rankings, trajectories, spatial patterns and outcome divergence instantly.",
@@ -658,7 +658,7 @@ export default function Home() {
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
       <header className="topbar">
-        <a href="#top" className="brand" aria-label="MIND ATLAS home">
+        <a href="#top" className="brand" aria-label="SYSU3DAILAB MIND ATLAS home">
           <span className="brand-mark"><span /><span /></span>
           <span>{t.brand}</span>
         </a>
