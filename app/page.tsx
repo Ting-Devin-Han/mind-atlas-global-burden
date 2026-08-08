@@ -18,7 +18,6 @@ import {
   Maximize2,
   RefreshCw,
   Search,
-  ShieldCheck,
   Sparkles,
   UploadCloud,
   X,
@@ -344,7 +343,6 @@ export default function Home() {
   const [schemaOpen, setSchemaOpen] = useState(false);
   const [methodOpen, setMethodOpen] = useState(false);
   const [uploadMessage, setUploadMessage] = useState("");
-  const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const t = copy[lang];
 
@@ -618,13 +616,6 @@ export default function Home() {
     });
   }, [t.invalid, t.loaded]);
 
-  const handleDrop = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    setDragging(false);
-    const file = event.dataTransfer.files?.[0];
-    if (file) loadFile(file);
-  }, [loadFile]);
-
   const exportRanking = () => {
     const data = sortedRanking.map((item, index) => ({
       rank: index + 1,
@@ -662,39 +653,21 @@ export default function Home() {
           <span className="brand-mark"><span /><span /></span>
           <span>{t.brand}</span>
         </a>
-        <div className="topbar-center">
-          <span className="status-dot" />
-          <span>{t.live}</span>
-        </div>
         <div className="top-actions">
           <button className="icon-button" onClick={() => setLang(lang === "zh" ? "en" : "zh")} aria-label="Switch language"><Languages size={17} /><span>{lang === "zh" ? "EN" : "中"}</span></button>
-          <button className="primary-small" onClick={() => inputRef.current?.click()}><UploadCloud size={16} />{sourceName === "demo" ? t.upload : t.replace}</button>
         </div>
       </header>
 
       <section className="hero" id="top">
         <div className="hero-copy">
-          <div className="eyebrow"><span>01</span>{t.kicker}</div>
           <h1>{t.title.split("\n").map((line) => <span key={line}>{line}</span>)}</h1>
           <p>{t.subtitle}</p>
           <div className="hero-actions">
+            <input ref={inputRef} type="file" accept=".csv,text/csv" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) loadFile(file); event.target.value = ""; }} />
             <button className="button-primary" onClick={() => inputRef.current?.click()}><UploadCloud size={18} />{t.upload}</button>
             <button className="button-secondary" onClick={exportRanking}><Download size={17} />{t.export}</button>
+            <button className="button-secondary" onClick={() => setSchemaOpen(true)}><FileSpreadsheet size={17} />{t.schema}</button>
           </div>
-        </div>
-        <div
-          className={`upload-panel ${dragging ? "is-dragging" : ""}`}
-          onDragEnter={(event) => { event.preventDefault(); setDragging(true); }}
-          onDragOver={(event) => event.preventDefault()}
-          onDragLeave={() => setDragging(false)}
-          onDrop={handleDrop}
-        >
-          <input ref={inputRef} type="file" accept=".csv,text/csv" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) loadFile(file); event.target.value = ""; }} />
-          <div className="upload-orbit"><UploadCloud size={25} /><i /><i /></div>
-          <strong>{t.uploadHint}</strong>
-          <span>CSV · UTF-8 · country-year panel</span>
-          <button onClick={() => setSchemaOpen(true)}>{t.schema}<ArrowUpRight size={13} /></button>
-          <div className="privacy"><ShieldCheck size={13} />{t.local}</div>
         </div>
       </section>
 
