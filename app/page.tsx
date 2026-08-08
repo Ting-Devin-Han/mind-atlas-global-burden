@@ -197,6 +197,22 @@ const atlasNameByNumericCode = new Map(
     .map((geo) => [String(geo.id).padStart(3, "0"), geo.properties?.name as string]),
 );
 
+const burdenMapPalette = ["#2b1748", "#4b2572", "#75409a", "#a44c91", "#cf5a78", "#ee7b62", "#f5b45f", "#f6d58a"];
+const rankingRingPalette = ["#49337f", "#6650ad", "#8564c9", "#ad6bc0", "#d56da3", "#ef7c82", "#fa9f68", "#f6cc70"];
+
+function interpolatePalette(palette: string[], position: number) {
+  const bounded = Math.max(0, Math.min(1, position));
+  const scaled = bounded * (palette.length - 1);
+  const lowerIndex = Math.floor(scaled);
+  const upperIndex = Math.min(palette.length - 1, lowerIndex + 1);
+  const mix = scaled - lowerIndex;
+  const parse = (hex: string) => [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16));
+  const lower = parse(palette[lowerIndex]);
+  const upper = parse(palette[upperIndex]);
+  const channels = lower.map((value, index) => Math.round(value + (upper[index] - value) * mix));
+  return `rgb(${channels[0]}, ${channels[1]}, ${channels[2]})`;
+}
+
 const copy = {
   zh: {
     brand: "SYSU3DAILAB // MIND ATLAS",
@@ -215,7 +231,7 @@ const copy = {
     trendGlobal: "全球中位数（2000=100）",
     trendCountry: "国家原始值",
     ringTitle: "综合负担排名",
-    ringSub: "全部国家和地区采用统一颜色，条长表示综合排名分数",
+    ringSub: "全部国家和地区按综合排名连续渐变，条长表示综合排名分数",
     rankTitle: "综合负担与长期联合负担排名",
     rankSub: "同时比较综合排名、长期负担与两项结局水平",
     methodology: "计算方法",
@@ -259,8 +275,10 @@ const copy = {
     noData: "暂无数据",
     high: "高",
     low: "低",
-    uniformColor: "统一颜色",
+    gradientColor: "渐变颜色表示综合排名",
     allRankedAreas: "全部{count}个国家和地区",
+    topTen: "综合排名前十名",
+    bottomTen: "综合排名末十名",
     switchLanguage: "切换至英文",
     rankingMetric: "排名指标",
     expand: "展开",
@@ -293,7 +311,7 @@ const copy = {
     trendGlobal: "Global median (2000=100)",
     trendCountry: "Country values",
     ringTitle: "Composite burden ranking",
-    ringSub: "All countries and territories share one color; bar length encodes the composite score",
+    ringSub: "All countries and territories follow a continuous rank gradient; bar length encodes the composite score",
     rankTitle: "Composite and long-term joint burden rankings",
     rankSub: "Compare composite rank, long-term burden and both outcome levels",
     methodology: "Method",
@@ -337,8 +355,10 @@ const copy = {
     noData: "No data",
     high: "HIGH",
     low: "LOW",
-    uniformColor: "Uniform color",
+    gradientColor: "Gradient color encodes composite rank",
     allRankedAreas: "All {count} countries and territories",
+    topTen: "Top 10 composite ranks",
+    bottomTen: "Bottom 10 composite ranks",
     switchLanguage: "Switch to Chinese",
     rankingMetric: "Ranking metric",
     expand: "Expand",
@@ -796,7 +816,7 @@ export default function Home() {
         textGap: 9,
         textStyle: { color: "#8aa0ad", fontSize: 9, fontFamily: "Arial" },
         calculable: false,
-        inRange: { color: ["#26547c", "#2ec4b6", "#f6d365", "#f78c6b", "#ef476f"] },
+        inRange: { color: burdenMapPalette },
         outOfRange: { color: ["#172832"] },
         borderColor: "transparent",
       },
@@ -882,17 +902,20 @@ export default function Home() {
         coordinateSystem: "polar",
         roundCap: true,
         barWidth: "88%",
-        data: ringCountries.map((item, index) => ({
+        data: ringCountries.map((item, index) => {
+          const color = interpolatePalette(rankingRingPalette, 1 - index / Math.max(1, ringCountries.length - 1));
+          return {
           name: countryLabel(item),
           value: ringValues[index],
           code: item.code,
           itemStyle: {
-            color: "#2ec4b6",
+            color,
             opacity: selectedCode === item.code ? 1 : 0.72,
             shadowBlur: selectedCode === item.code ? 16 : 0,
-            shadowColor: "rgba(46,196,182,.5)",
+            shadowColor: color,
           },
-        })),
+          };
+        }),
       }],
       graphic: [
         { type: "text", left: "center", top: "42%", style: { text: t.top, fill: "#718492", font: "600 9px Arial", textAlign: "center" } },
@@ -900,6 +923,80 @@ export default function Home() {
       ],
     };
   }, [countryLabel, ringCountries, selectedCode, t.anxiety, t.joint, t.longTerm, t.suicide, t.top]);
+
+  const topTenCountries = useMemo(() => ringCountries.slice(0, 10), [ringCountries]);
+  const bottomTenCountries = useMemo(() => ringCountries.slice(-10), [ringCountries]);
+  const createMiniRingOption = useCallback((items: RankedCountry[], rankStart: number) => {
+    const globalMinimum = Math.min(...ringCountries.map((item) => item.joint), 0);
+    const globalMaximum = Math.max(...ringCountries.map((item) => item.joint), 1);
+    const globalSpan = globalMaximum - globalMinimum || 1;
+    return {
+      backgroundColor: "transparent",
+      animationDurationUpdate: 650,
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "rgba(7,12,18,.96)",
+        borderColor: "#47355f",
+        textStyle: { color: "#eef9ff" },
+        formatter: (params: unknown) => {
+          const p = params as { data?: { country?: RankedCountry; rank?: number } };
+          const country = p.data?.country;
+          if (!country) return t.noData;
+          return `<b>#${p.data?.rank} ${countryLabel(country)}</b><br/>${t.joint}&nbsp;&nbsp;<strong>${fmt(country.joint, 2)}</strong><br/>${t.longTerm}&nbsp;&nbsp;#${country.longTermRank} · ${fmt(country.longTermBurden, 2)}`;
+        },
+      },
+      angleAxis: {
+        type: "category",
+        data: items.map((item) => item.code.slice(0, 3)),
+        startAngle: 90,
+        clockwise: true,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { show: true, interval: 0, margin: 5, color: "#738895", fontSize: 7, fontFamily: "Arial" },
+      },
+      radiusAxis: {
+        min: 0,
+        max: 1,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { show: false },
+        splitNumber: 3,
+        splitLine: { lineStyle: { color: ["rgba(124,99,155,.12)"] } },
+      },
+      polar: { center: ["50%", "55%"], radius: ["30%", "70%"] },
+      series: [{
+        type: "bar",
+        coordinateSystem: "polar",
+        roundCap: true,
+        barWidth: "58%",
+        data: items.map((item, index) => {
+          const globalIndex = ringCountries.findIndex((entry) => entry.code === item.code);
+          const color = interpolatePalette(rankingRingPalette, 1 - globalIndex / Math.max(1, ringCountries.length - 1));
+          return {
+            name: countryLabel(item),
+            value: 0.24 + 0.76 * ((item.joint - globalMinimum) / globalSpan),
+            code: item.code,
+            country: item,
+            rank: rankStart + index,
+            itemStyle: {
+              color,
+              opacity: selectedCode === item.code ? 1 : 0.84,
+              shadowBlur: selectedCode === item.code ? 12 : 0,
+              shadowColor: color,
+            },
+          };
+        }),
+      }],
+      graphic: [{
+        type: "text",
+        left: "center",
+        top: "47%",
+        style: { text: `${rankStart}–${rankStart + items.length - 1}`, fill: "#d9e6ec", font: "700 12px Arial", textAlign: "center" },
+      }],
+    } as echarts.EChartsOption;
+  }, [countryLabel, ringCountries, selectedCode, t.joint, t.longTerm, t.noData]);
+  const topTenOption = useMemo(() => createMiniRingOption(topTenCountries, 1), [createMiniRingOption, topTenCountries]);
+  const bottomTenOption = useMemo(() => createMiniRingOption(bottomTenCountries, ringCountries.length - bottomTenCountries.length + 1), [bottomTenCountries, createMiniRingOption, ringCountries.length]);
 
   const handleRingClick = useCallback((params: unknown) => {
     const p = params as { data?: { code?: string } };
@@ -1059,8 +1156,14 @@ export default function Home() {
             <div><span className="panel-number">{t.orbitSection}</span><h2>{t.ringTitle}</h2><p>{t.ringSub}</p></div>
             <button className="ghost-icon" onClick={() => setMethodOpen(true)} aria-label={t.methodology}><CircleHelp size={16} /></button>
           </div>
-          <EChart option={ringOption} className="ring-chart" onClick={handleRingClick} />
-          <div className="ring-legend"><span><i className="legend-uniform" />{t.uniformColor}</span><span>{t.allRankedAreas.replace("{count}", String(ringCountries.length))}</span></div>
+          <div className="ring-visuals">
+            <EChart option={ringOption} className="ring-chart" onClick={handleRingClick} />
+            <div className="mini-rings">
+              <div className="mini-ring-card"><span>{t.topTen}</span><EChart option={topTenOption} className="mini-ring-chart" onClick={handleRingClick} /></div>
+              <div className="mini-ring-card"><span>{t.bottomTen}</span><EChart option={bottomTenOption} className="mini-ring-chart" onClick={handleRingClick} /></div>
+            </div>
+          </div>
+          <div className="ring-legend"><span><i className="legend-gradient" />{t.gradientColor}</span><span>{t.allRankedAreas.replace("{count}", String(ringCountries.length))}</span></div>
         </article>
 
         <article className="panel ranking-panel">
