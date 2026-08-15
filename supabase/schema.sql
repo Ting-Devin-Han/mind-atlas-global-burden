@@ -126,6 +126,20 @@ for select
 to authenticated
 using (public.is_research_admin());
 
+create or replace function public.get_visitor_country_counts()
+returns table(country_code text, visit_count bigint)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select site_visits.country_code, count(*)::bigint as visit_count
+  from public.site_visits
+  where site_visits.country_code is not null
+  group by site_visits.country_code
+  order by visit_count desc;
+$$;
+
 revoke all on public.research_responses from anon, authenticated;
 grant insert on public.research_responses to anon;
 grant select on public.research_responses to authenticated;
@@ -134,3 +148,5 @@ grant select on public.research_admins to authenticated;
 revoke all on public.site_visits from anon, authenticated;
 grant insert on public.site_visits to anon;
 grant select on public.site_visits to authenticated;
+revoke all on function public.get_visitor_country_counts() from public;
+grant execute on function public.get_visitor_country_counts() to anon, authenticated;

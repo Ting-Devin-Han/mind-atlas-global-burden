@@ -52,9 +52,9 @@ export type SiteVisit = {
   referrer_host: string | null;
 };
 
-export type StoredSiteVisit = SiteVisit & {
-  id: string;
-  visited_at: string;
+export type VisitorCountryCount = {
+  country_code: string;
+  visit_count: number;
 };
 
 const environment = import.meta.env as Record<string, string | undefined>;
@@ -118,11 +118,14 @@ export async function recordSiteVisit(payload: SiteVisit) {
   if (!response.ok) throw new Error(`VISIT_RECORD_FAILED_${response.status}`);
 }
 
-export async function fetchSiteVisits(token: string) {
-  const response = await fetch(`${researchConfig.url}/rest/v1/site_visits?select=*&order=visited_at.desc&limit=500`, {
-    headers: headers(token),
+export async function fetchVisitorCountryCounts() {
+  if (!backendConfigured) return [];
+  const response = await fetch(`${researchConfig.url}/rest/v1/rpc/get_visitor_country_counts`, {
+    method: "POST",
+    headers: headers(),
+    body: "{}",
   });
   if (response.status === 404) return [];
-  if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? "FORBIDDEN" : "FETCH_FAILED");
-  return response.json() as Promise<StoredSiteVisit[]>;
+  if (!response.ok) throw new Error(`VISITOR_COUNTS_FAILED_${response.status}`);
+  return response.json() as Promise<VisitorCountryCount[]>;
 }

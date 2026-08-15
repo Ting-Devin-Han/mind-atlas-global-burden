@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as echarts from "echarts";
+import countries from "i18n-iso-countries";
+import worldAtlas from "world-atlas/countries-110m.json";
 import { Building2, ExternalLink, GitBranch, Mail, MapPinned, ShieldCheck } from "lucide-react";
 import AtlasNav, { type AtlasLanguage } from "./atlas-nav";
-import { researchConfig } from "../src/research-backend";
+import { fetchVisitorCountryCounts, researchConfig, type VisitorCountryCount } from "../src/research-backend";
+
+type AtlasGeometry = { id?: string | number; properties?: { name?: string } };
+const atlasGeographies = (worldAtlas as unknown as { objects: { countries: { geometries: AtlasGeometry[] } } }).objects.countries.geometries;
+const atlasNameByNumericCode = new Map(atlasGeographies.filter((item) => item.id != null && item.properties?.name).map((item) => [String(item.id).padStart(3, "0"), item.properties?.name as string]));
 
 const contactText = {
   en: {
@@ -18,6 +25,11 @@ const contactText = {
     institutionText: "SYSU3DAILAB // MIND ATLAS is an academic observatory of fatal and non-fatal mental-health burdens.",
     privacy: "Visitor geography and privacy",
     privacyText: "To understand the atlas's global reach, the site records one visit per browser session. A network-location service estimates country, region and city. The atlas stores only those approximate fields, the page visited, time, browser language and viewport width. It does not store raw IP addresses, GPS data or precise coordinates.",
+    visitorMap: "Global visitor map",
+    visitorMapSub: "Country-level distribution of recorded browser sessions",
+    visits: "recorded visits",
+    countries: "countries or territories",
+    noVisitors: "Visitor locations will appear after the analytics table is enabled in Supabase.",
     email: "Email the team",
     issues: "Open GitHub issues",
     unavailable: "A direct study email will appear here when the approved contact address is configured.",
@@ -35,6 +47,11 @@ const contactText = {
     institutionText: "SYSU3DAILAB // MIND ATLAS 是一个关注致死性与非致死性心理健康负担的学术观测平台。",
     privacy: "访客地理信息与隐私",
     privacyText: "为了解观测台的全球覆盖范围，网站每个浏览器会话记录一次访问。网络定位服务仅估算国家、地区和城市；后台保存这些粗粒度字段、访问页面、时间、浏览器语言和视窗宽度，不保存原始 IP、GPS 信息或精确经纬度。",
+    visitorMap: "全球访客地图",
+    visitorMapSub: "已记录浏览器会话的国家级分布",
+    visits: "次访问",
+    countries: "个国家或地区",
+    noVisitors: "Supabase 中启用访客统计表后，访客位置将在此显示。",
     email: "邮件联系团队",
     issues: "提交 GitHub 问题",
     unavailable: "经批准的研究联系邮箱完成配置后，将在此显示。",
@@ -44,15 +61,89 @@ const contactText = {
 
 const repositoryUrl = "https://github.com/Ting-Devin-Han/mind-atlas-global-burden";
 
+function mapNameFromAlpha2(code: string) {
+  const numeric = countries.alpha2ToNumeric(code);
+  return numeric ? atlasNameByNumericCode.get(numeric) : undefined;
+}
+
+function VisitorMap({ option }: { option: echarts.EChartsOption }) {
+  const node = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!node.current) return;
+    const chart = echarts.getInstanceByDom(node.current) || echarts.init(node.current, undefined, { renderer: "canvas" });
+    chart.setOption(option, { notMerge: true });
+    const resize = () => {
+      if (!chart.isDisposed()) chart.resize();
+    };
+    window.addEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+      chart.dispose();
+    };
+  }, [option]);
+  return <div ref={node} className="contact-visitor-map" />;
+}
+
 export default function ContactPage() {
   const [lang, setLang] = useState<AtlasLanguage>("en");
   const t = contactText[lang];
   const contact = researchConfig.studyContact.trim();
+  const [visitorCounts, setVisitorCounts] = useState<VisitorCountryCount[]>([]);
 
   useEffect(() => {
     document.title = `${t.title} — SYSU3DAILAB MIND ATLAS`;
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
   }, [lang, t.title]);
+
+  useEffect(() => {
+    let active = true;
+    fetchVisitorCountryCounts().then((data) => { if (active) setVisitorCounts(data); }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const totalVisits = visitorCounts.reduce((sum, item) => sum + Number(item.visit_count), 0);
+  const visitorMapOption = useMemo<echarts.EChartsOption>(() => {
+    const values = visitorCounts.map((item) => Number(item.visit_count));
+    const maximum = Math.max(...values, 1);
+    return {
+      animationDuration: 500,
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "#08141b",
+        borderColor: "#334a58",
+        textStyle: { color: "#ecf7fb", fontSize: 10 },
+        formatter: (params: unknown) => {
+          const item = params as { name?: string; value?: number | string };
+          const value = Number(item.value);
+          return `<b>${item.name || ""}</b><br/>${Number.isFinite(value) ? `${value} ${t.visits}` : t.noVisitors}`;
+        },
+      },
+      ...(visitorCounts.length ? { visualMap: {
+          min: 1,
+          max: maximum,
+          left: 20,
+          bottom: 14,
+          orient: "horizontal" as const,
+          calculable: false,
+          text: [String(maximum), "1"],
+          textStyle: { color: "#607783", fontSize: 8 },
+          inRange: { color: ["#e9e4f2", "#aa87c5", "#76388f", "#3d155f"] },
+        } } : {}),
+      series: [{
+        type: "map",
+        map: "mind-world",
+        roam: true,
+        zoom: 1.06,
+        data: visitorCounts.flatMap((item) => {
+          const name = mapNameFromAlpha2(item.country_code);
+          return name ? [{ name, value: Number(item.visit_count) }] : [];
+        }),
+        itemStyle: { areaColor: "#dfe6e9", borderColor: "#33444d", borderWidth: .55 },
+        emphasis: { itemStyle: { areaColor: "#d97cb3", borderColor: "#f3fbff" }, label: { color: "#071015", fontSize: 9 } },
+        select: { disabled: true },
+      }],
+    };
+  }, [t.noVisitors, t.visits, visitorCounts]);
 
   return (
     <main className="app-shell feature-page contact-page">
@@ -91,6 +182,12 @@ export default function ContactPage() {
           <p>{t.privacyText}</p>
           <div><ShieldCheck size={17} /><span>NO RAW IP · NO GPS · NO PRECISE COORDINATES</span></div>
         </article>
+      </section>
+
+      <section className="contact-map-panel feature-width">
+        <header><div><span>05</span><h2>{t.visitorMap}</h2><p>{t.visitorMapSub}</p></div><div><strong>{totalVisits}</strong><span>{t.visits}</span><strong>{visitorCounts.length}</strong><span>{t.countries}</span></div></header>
+        <VisitorMap option={visitorMapOption} />
+        {!visitorCounts.length && <p className="contact-map-empty">{t.noVisitors}</p>}
       </section>
 
       <footer className="feature-footer"><span>SYSU3DAILAB // MIND ATLAS</span><p>{t.footer}</p><span>CONTACT / v1.0</span></footer>

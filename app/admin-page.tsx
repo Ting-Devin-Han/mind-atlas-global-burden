@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Papa from "papaparse";
-import { Database, Download, KeyRound, LockKeyhole, LogOut, MapPinned, RefreshCw, Search, ShieldCheck, Users } from "lucide-react";
+import { Database, Download, KeyRound, LockKeyhole, LogOut, RefreshCw, Search, ShieldCheck, Users } from "lucide-react";
 import AtlasNav, { type AtlasLanguage } from "./atlas-nav";
-import { backendConfigured, fetchResearchResponses, fetchSiteVisits, signInResearchAdmin, type StoredResearchSubmission, type StoredSiteVisit } from "../src/research-backend";
+import { backendConfigured, fetchResearchResponses, signInResearchAdmin, type StoredResearchSubmission } from "../src/research-backend";
 
 const adminText = {
   zh: {
@@ -37,13 +37,6 @@ const adminText = {
     noData: "尚无已提交记录",
     security: "数据库行级权限已启用：匿名访客只能写入，只有管理员可以读取。",
     distribution: "量表得分分布",
-    visits: "访客会话",
-    visitorCountries: "访客国家或地区",
-    latestVisits: "最近访客地理记录",
-    location: "粗略位置",
-    route: "访问页面",
-    language: "浏览器语言",
-    visitorPrivacy: "仅显示网络推断的粗粒度位置；后台不保存原始IP、GPS或精确经纬度。",
   },
   en: {
     title: "Research data dashboard",
@@ -75,13 +68,6 @@ const adminText = {
     noData: "No submitted records yet",
     security: "Database row-level security is enabled: anonymous visitors can insert only, while administrators can read.",
     distribution: "Score distribution",
-    visits: "Visitor sessions",
-    visitorCountries: "Visitor countries or territories",
-    latestVisits: "Recent visitor geography",
-    location: "Approximate location",
-    route: "Page",
-    language: "Browser language",
-    visitorPrivacy: "Only coarse network-derived locations are shown. Raw IP addresses, GPS data and precise coordinates are not stored.",
   },
 };
 
@@ -95,7 +81,6 @@ export default function AdminPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [records, setRecords] = useState<StoredResearchSubmission[]>([]);
-  const [visits, setVisits] = useState<StoredSiteVisit[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -111,9 +96,7 @@ export default function AdminPage() {
     setLoading(true);
     setError("");
     try {
-      const [responseData, visitData] = await Promise.all([fetchResearchResponses(activeToken), fetchSiteVisits(activeToken)]);
-      setRecords(responseData);
-      setVisits(visitData);
+      setRecords(await fetchResearchResponses(activeToken));
     } catch {
       setError(t.authError);
       setToken("");
@@ -126,8 +109,8 @@ export default function AdminPage() {
   useEffect(() => {
     if (!token || !backendConfigured) return;
     let active = true;
-    Promise.all([fetchResearchResponses(token), fetchSiteVisits(token)])
-      .then(([responseData, visitData]) => { if (active) { setRecords(responseData); setVisits(visitData); } })
+    fetchResearchResponses(token)
+      .then((data) => { if (active) setRecords(data); })
       .catch(() => {
         if (!active) return;
         setError(t.authError);
@@ -156,7 +139,6 @@ export default function AdminPage() {
     window.sessionStorage.removeItem("mind-atlas-admin-token");
     setToken("");
     setRecords([]);
-    setVisits([]);
   };
 
   const filtered = useMemo(() => {
@@ -171,9 +153,6 @@ export default function AdminPage() {
     minutes: average(records.map((record) => record.completion_seconds)) / 60,
   }), [records]);
 
-  const visitorMetrics = useMemo(() => ({
-    countries: new Set(visits.map((visit) => visit.country_code).filter(Boolean)).size,
-  }), [visits]);
 
   const gadBands = useMemo(() => [
     records.filter((record) => record.gad7_score <= 4).length,
@@ -200,12 +179,6 @@ export default function AdminPage() {
     {!backendConfigured ? <section className="admin-config feature-width"><LockKeyhole size={27} /><h2>{t.notConfigured}</h2><p><code>VITE_SUPABASE_URL</code><code>VITE_SUPABASE_ANON_KEY</code></p></section> : !token ? <section className="admin-login feature-width"><div><ShieldCheck size={26} /><span>AUTHORISED ACCESS ONLY</span><h2>{t.login}</h2><p>{t.loginText}</p></div><form onSubmit={(event) => { event.preventDefault(); void login(); }}><label><span>{t.email}</span><input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required /></label><label><span>{t.password}</span><input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>{error && <p className="admin-error">{error}</p>}<button disabled={loading}><KeyRound size={16} />{t.signIn}</button></form></section> : <>
       <section className="admin-kpis feature-width"><article><Users size={18} /><span>{t.responses}</span><strong>{records.length}</strong></article><article><Database size={18} /><span>{t.countries}</span><strong>{metrics.countries}</strong></article><article><span>{t.gad}</span><strong>{metrics.gad.toFixed(1)}<small>/21</small></strong></article><article><span>{t.who}</span><strong>{metrics.who.toFixed(1)}<small>/100</small></strong></article><article><span>{t.completion}</span><strong>{metrics.minutes.toFixed(1)}<small>{t.minutes}</small></strong></article></section>
       <section className="admin-body feature-width"><article className="admin-distribution"><header><span>{t.distribution}</span><strong>GAD-7</strong></header><div>{gadBands.map((count, index) => <div key={index}><span>{["0–4", "5–9", "10–14", "15–21"][index]}</span><i><b style={{ width: `${records.length ? (count / records.length) * 100 : 0}%` }} /></i><strong>{count}</strong></div>)}</div><p><ShieldCheck size={14} />{t.security}</p></article><article className="admin-records"><header><div><span>DATASET</span><h2>{t.records}</h2></div><div className="admin-tools"><label><Search size={14} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} /></label><button onClick={() => void load()} title={t.refresh}><RefreshCw size={15} className={loading ? "spin" : ""} /></button><button onClick={exportCsv}><Download size={15} />{t.export}</button><button onClick={logout} title={t.logout}><LogOut size={15} /></button></div></header><div className="admin-table-head"><span>{t.submitted}</span><span>{t.id}</span><span>{t.country}</span><span>{t.age}</span><span>{t.gender}</span><span>{t.employment}</span><span>GAD-7</span><span>WHO-5</span></div><div className="admin-table-body">{filtered.map((record) => <div key={record.id}><span>{new Date(record.submitted_at).toLocaleDateString(lang === "zh" ? "zh-CN" : "en")}</span><code>{record.participant_uuid.slice(0, 8)}</code><b>{record.country_code}</b><span>{record.age_group}</span><span>{record.gender}</span><span>{record.employment}</span><strong>{record.gad7_score}</strong><strong>{record.who5_score}</strong></div>)}{!filtered.length && <p>{t.noData}</p>}</div></article></section>
-      <section className="admin-visitors feature-width">
-        <header><div><MapPinned size={19} /><span>VISITOR ANALYTICS</span><h2>{t.latestVisits}</h2></div><div className="visitor-summary"><span>{t.visits}<strong>{visits.length}</strong></span><span>{t.visitorCountries}<strong>{visitorMetrics.countries}</strong></span></div></header>
-        <p><ShieldCheck size={14} />{t.visitorPrivacy}</p>
-        <div className="visitor-table-head"><span>{t.submitted}</span><span>{t.location}</span><span>{t.route}</span><span>{t.language}</span><span>VIEWPORT</span></div>
-        <div className="visitor-table-body">{visits.map((visit) => <div key={visit.id}><span>{new Date(visit.visited_at).toLocaleString(lang === "zh" ? "zh-CN" : "en", { dateStyle: "medium", timeStyle: "short" })}</span><span><b>{visit.country_code || "--"}</b>{[visit.city, visit.region, visit.country_name].filter(Boolean).join(", ") || "Unknown"}</span><code>{visit.page_path}</code><span>{visit.browser_language || "--"}</span><span>{visit.screen_width}px</span></div>)}{!visits.length && <p>{t.noData}</p>}</div>
-      </section>
     </>}
     <footer className="feature-footer"><span>SYSU3DAILAB // MIND ATLAS</span><p>{t.security}</p><span>ADMIN / v1.0</span></footer>
   </main>;

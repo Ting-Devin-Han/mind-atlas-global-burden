@@ -205,9 +205,10 @@ function parseTrajectories(rows: Record<string, unknown>[]) {
     const year = Number(row.year);
     const p25 = Number(row.p25);
     const median = Number(row.median);
-    const mean = Number(row.mean);
+    const rawMean = Number(row.mean);
     const p75 = Number(row.p75);
-    if (!scenarioOrder.includes(scenario) || !["Suicide", "Anxiety", "Depression"].includes(outcome) || ![year, p25, median, mean, p75].every(Number.isFinite)) return [];
+    if (!scenarioOrder.includes(scenario) || !["Suicide", "Anxiety", "Depression"].includes(outcome) || ![year, p25, median, p75].every(Number.isFinite)) return [];
+    const mean = Number.isFinite(rawMean) ? rawMean : median;
     return [{ scenario, outcome, year, p25, median, mean, p75 }];
   });
 }

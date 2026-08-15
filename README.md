@@ -9,7 +9,7 @@ An interactive, browser-only dashboard for comparing suicide mortality with anxi
 - `#/` — Global atlas with maps, trajectories and rankings / 全球地图、年度轨迹与综合排名
 - `#/scenario` — Conditional 2030 results under trend continuation, attenuated divergence and accelerated divergence / 趋势延续、负担分化减弱和负担分化加速三种2030条件性情景
 - `#/survey` — Individual mental-health and socioeconomic research survey for adults aged 18+ / 面向18岁及以上成年人的个体心理健康与社会经济研究问卷
-- `#/contact` — Research contact, repository links and visitor-geography privacy notice / 研究联系、项目仓库与访客地理信息隐私说明
+- `#/contact` — Research contact, privacy information and a country-level visitor map / 研究联系、隐私说明与国家级访客地图
 - `#/admin` — Authorised research data dashboard / 仅授权管理员访问的研究数据后台
 
 English is the default interface language on every page. The language control switches the current page to Chinese.
@@ -37,9 +37,9 @@ Uploaded country panels are processed locally. Research survey responses are sub
 
 ## Research database / 研究数据库
 
-The survey and privacy-limited visitor analytics use a Supabase PostgreSQL database with row-level security. Anonymous visitors can insert survey or session records but cannot read any record. Only users listed in `research_admins` can access the dashboard and export data.
+The survey and privacy-limited visitor analytics use a Supabase PostgreSQL database with row-level security. Anonymous visitors can insert survey or session records but cannot read row-level data. The public visitor map receives country-level aggregate counts through a restricted database function. Only users listed in `research_admins` can access the dashboard and export survey data.
 
-问卷和隐私受限的访客统计使用启用行级安全策略的 Supabase PostgreSQL 数据库。匿名访问者只能写入问卷或会话记录，不能读取任何记录；只有加入 `research_admins` 的用户才能进入后台并导出数据。
+问卷和隐私受限的访客统计使用启用行级安全策略的 Supabase PostgreSQL 数据库。匿名访问者可以写入问卷或会话记录，但不能读取行级数据；公开访客地图仅通过受限数据库函数获得国家级汇总数量。只有加入 `research_admins` 的用户才能进入后台并导出问卷数据。
 
 1. Create a Supabase project and run [`supabase/schema.sql`](supabase/schema.sql) in its SQL editor.
 2. Create the administrator in Supabase Authentication, then add that user UUID to `research_admins`.
