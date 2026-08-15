@@ -44,9 +44,6 @@ export type SiteVisit = {
   page_path: string;
   country_code: string | null;
   country_name: string | null;
-  region: string | null;
-  city: string | null;
-  timezone: string | null;
   browser_language: string | null;
   screen_width: number;
   referrer_host: string | null;
@@ -64,7 +61,7 @@ export const researchConfig = {
   anonKey: environment.VITE_SUPABASE_ANON_KEY || "",
   studyContact: environment.VITE_STUDY_CONTACT || "",
   ethicsId: environment.VITE_ETHICS_ID || "",
-  visitorGeoEndpoint: environment.VITE_VISITOR_GEO_ENDPOINT || "https://ipwho.is/",
+  visitorGeoEndpoint: environment.VITE_VISITOR_GEO_ENDPOINT || "https://get.geojs.io/v1/ip/country.json",
   visitorAnalyticsEnabled: environment.VITE_VISITOR_ANALYTICS_ENABLED !== "false",
 };
 

@@ -31,9 +31,9 @@ Optional / 可选字段: `continent`. Existing aliases such as `Code`, `NAME`, `
 
 ## Privacy / 隐私
 
-Uploaded country panels are processed locally. Research survey responses are submitted only after electronic consent and only when an approved study database is configured. When the research backend is connected, the site also records one visit per browser session to assess global reach. A network-location service estimates country, region and city; the database does not store raw IP addresses, GPS data or precise coordinates.
+Uploaded country panels are processed locally. Research survey responses are submitted only after electronic consent and only when an approved study database is configured. When the research backend is connected, the site also records one visit per browser session to assess global reach. GeoJS uses the visitor's public IP to identify the country; the database stores only the country code and name and does not store the raw IP address, region, city, GPS data or precise coordinates.
 
-上传的国家面板仅在浏览器本地处理。个体研究问卷仅在参与者完成电子知情同意、且经批准的研究数据库完成配置后才会提交。研究后台接通后，网站还会为每个浏览器会话记录一次访问，以评估全球覆盖范围。网络定位服务仅估算国家、地区和城市；数据库不保存原始IP、GPS数据或精确坐标。
+上传的国家面板仅在浏览器本地处理。个体研究问卷仅在参与者完成电子知情同意、且经批准的研究数据库完成配置后才会提交。研究后台接通后，网站还会为每个浏览器会话记录一次访问，以评估全球覆盖范围。GeoJS 仅根据访客公共 IP 判断国家；数据库只保存国家代码和名称，不保存原始 IP、地区、城市、GPS 数据或精确坐标。
 
 ## Research database / 研究数据库
 

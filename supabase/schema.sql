@@ -50,9 +50,6 @@ create table if not exists public.site_visits (
   page_path text not null check (char_length(page_path) between 1 and 120),
   country_code text check (country_code is null or char_length(country_code) = 2),
   country_name text check (country_name is null or char_length(country_name) <= 120),
-  region text check (region is null or char_length(region) <= 160),
-  city text check (city is null or char_length(city) <= 160),
-  timezone text check (timezone is null or char_length(timezone) <= 80),
   browser_language text check (browser_language is null or char_length(browser_language) <= 35),
   screen_width integer not null check (screen_width between 200 and 10000),
   referrer_host text check (referrer_host is null or char_length(referrer_host) <= 255)

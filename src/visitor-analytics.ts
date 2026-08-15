@@ -4,9 +4,7 @@ type GeoLookup = {
   success?: boolean;
   country_code?: string;
   country?: string;
-  region?: string;
-  city?: string;
-  timezone?: { id?: string } | string;
+  name?: string;
 };
 
 const visitKey = "mind-atlas-visit-recorded-v1";
@@ -48,16 +46,14 @@ export async function recordAnonymousSiteVisit(pagePath: string) {
     window.clearTimeout(timeout);
   }
 
-  const timezone = typeof geo.timezone === "string" ? geo.timezone : geo.timezone?.id;
+  const countryCode = geo.country_code || (geo.name ? geo.country : undefined);
+  const countryName = geo.name || (geo.country_code ? geo.country : undefined);
   try {
     await recordSiteVisit({
       session_id: crypto.randomUUID(),
       page_path: compact(pagePath, 120) || "#/",
-      country_code: compact(geo.country_code?.toUpperCase(), 2),
-      country_name: compact(geo.country, 120),
-      region: compact(geo.region, 160),
-      city: compact(geo.city, 160),
-      timezone: compact(timezone, 80),
+      country_code: compact(countryCode?.toUpperCase(), 2),
+      country_name: compact(countryName, 120),
       browser_language: compact(navigator.language, 35),
       screen_width: Math.round(window.innerWidth),
       referrer_host: referrerHost(),
