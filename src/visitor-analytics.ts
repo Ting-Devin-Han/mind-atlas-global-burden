@@ -8,6 +8,7 @@ type GeoLookup = {
 };
 
 const visitKey = "mind-atlas-visit-recorded-v1";
+export const visitRecordedEvent = "mind-atlas:visit-recorded";
 
 function compact(value: unknown, limit: number) {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, limit) : null;
@@ -59,6 +60,7 @@ export async function recordAnonymousSiteVisit(pagePath: string) {
       referrer_host: referrerHost(),
     });
     window.sessionStorage.setItem(visitKey, "recorded");
+    window.dispatchEvent(new CustomEvent(visitRecordedEvent));
   } catch {
     window.sessionStorage.removeItem(visitKey);
   }

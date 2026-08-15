@@ -7,6 +7,7 @@ import worldAtlas from "world-atlas/countries-110m.json";
 import { Building2, ExternalLink, GitBranch, Mail, MapPinned, ShieldCheck } from "lucide-react";
 import AtlasNav, { type AtlasLanguage } from "./atlas-nav";
 import { fetchVisitorCountryCounts, researchConfig, type VisitorCountryCount } from "../src/research-backend";
+import { visitRecordedEvent } from "../src/visitor-analytics";
 
 type AtlasGeometry = { id?: string | number; properties?: { name?: string } };
 const atlasGeographies = (worldAtlas as unknown as { objects: { countries: { geometries: AtlasGeometry[] } } }).objects.countries.geometries;
@@ -97,8 +98,15 @@ export default function ContactPage() {
 
   useEffect(() => {
     let active = true;
-    fetchVisitorCountryCounts().then((data) => { if (active) setVisitorCounts(data); }).catch(() => undefined);
-    return () => { active = false; };
+    const refreshCounts = () => {
+      fetchVisitorCountryCounts().then((data) => { if (active) setVisitorCounts(data); }).catch(() => undefined);
+    };
+    refreshCounts();
+    window.addEventListener(visitRecordedEvent, refreshCounts);
+    return () => {
+      active = false;
+      window.removeEventListener(visitRecordedEvent, refreshCounts);
+    };
   }, []);
 
   const totalVisits = visitorCounts.reduce((sum, item) => sum + Number(item.visit_count), 0);
