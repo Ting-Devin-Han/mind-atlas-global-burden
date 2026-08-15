@@ -1,165 +1,228 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as echarts from "echarts";
 import Papa from "papaparse";
 import countries from "i18n-iso-countries";
 import enCountries from "i18n-iso-countries/langs/en.json";
 import zhCountries from "i18n-iso-countries/langs/zh.json";
-import { Activity, ArrowDownRight, ArrowUpRight, FlaskConical, RotateCcw, Search, SlidersHorizontal, Sparkles, Target } from "lucide-react";
+import worldAtlas from "world-atlas/countries-110m.json";
+import { Activity, Globe2, Search, Sparkles } from "lucide-react";
 import AtlasNav, { type AtlasLanguage } from "./atlas-nav";
 
 countries.registerLocale(enCountries);
 countries.registerLocale(zhCountries);
 
-type PanelRow = {
+type Scenario = "Trend continuation" | "Attenuated burden divergence" | "Accelerated burden divergence";
+type Outcome = "Divergence" | "Suicide" | "Anxiety" | "Depression";
+
+type ProjectionRow = {
   code: string;
   name: string;
+  continent: string;
   year: number;
+  scenario: Scenario;
+  outcome: Exclude<Outcome, "Divergence">;
+  prediction: number;
+  baseline: number;
+};
+
+type TrajectoryRow = {
+  scenario: Scenario;
+  outcome: Exclude<Outcome, "Divergence">;
+  year: number;
+  p25: number;
+  median: number;
+  mean: number;
+  p75: number;
+};
+
+type SummaryRow = {
+  scenario: Scenario;
+  outcome: Exclude<Outcome, "Divergence">;
+  medianChange: number;
+  meanChange: number;
+  increases: number;
+  declines: number;
+};
+
+type CountryScenario = {
+  code: string;
+  name: string;
+  continent: string;
   suicide: number;
   anxiety: number;
+  depression: number;
+  nonFatal: number;
+  divergence: number;
 };
 
-type ScenarioCountry = {
-  code: string;
-  name: string;
-  structural: number;
-  momentum: number;
-  score: number;
-  rank: number;
-  baselineRank: number;
-  movement: number;
-  meanSuicide: number;
-  meanAnxiety: number;
+type AtlasGeometry = { id?: string | number; properties?: { name?: string } };
+
+const atlasGeographies = (worldAtlas as unknown as {
+  objects: { countries: { geometries: AtlasGeometry[] } };
+}).objects.countries.geometries;
+
+const atlasNameByNumericCode = new Map(
+  atlasGeographies
+    .filter((geo) => geo.id !== undefined && geo.id !== null && geo.properties?.name)
+    .map((geo) => [String(geo.id).padStart(3, "0"), geo.properties?.name as string]),
+);
+
+const scenarioOrder: Scenario[] = [
+  "Trend continuation",
+  "Attenuated burden divergence",
+  "Accelerated burden divergence",
+];
+
+const outcomeOrder: Outcome[] = ["Divergence", "Suicide", "Anxiety", "Depression"];
+
+const colors = {
+  Suicide: "#3e63af",
+  Anxiety: "#d97cb3",
+  Depression: "#7f3292",
 };
 
-type ScenarioPreset = "balanced" | "anxiety" | "suicide" | "emerging";
-
-const scenarioCopy = {
+const copy = {
   zh: {
-    documentTitle: "排名情景实验室 — SYSU3DAILAB MIND ATLAS",
-    kicker: "实验性权重重算",
-    titleA: "如果我们改变观察重点，",
-    titleB: "全球负担排名会怎样变化？",
-    intro: "调整结局权重与时间权重，使用最终231国面板即时重算综合负担排名。所有结果均为探索性情景，不替代论文主分析。",
-    outcomeWeight: "结局权重",
-    anxietyWeight: "焦虑患病率",
-    suicideWeight: "自杀死亡率",
-    timeWeight: "时间维度权重",
-    structuralWeight: "长期平均负担",
-    momentumWeight: "变化趋势",
-    presets: "快速情景",
-    balanced: "均衡视角",
-    anxiety: "焦虑优先",
-    suicide: "自杀预防优先",
-    emerging: "新兴风险",
-    reset: "恢复论文基准",
-    scenarioLeader: "当前情景首位",
-    largestRise: "排名上升最多",
-    largestFall: "排名下降最多",
-    countries: "参与排名",
-    pressureMap: "结构负担 × 变化趋势",
-    pressureSub: "右上象限表示长期负担与上升趋势同时较高",
-    topRanking: "情景排名前20名",
-    topSub: "条形长度表示当前情景标准化得分",
-    fullRanking: "全部国家和地区",
+    documentTitle: "2030条件性情景 — SYSU3DAILAB MIND ATLAS",
+    kicker: "2030条件性预测",
+    titleA: "三种情景下，",
+    titleB: "全球负担分化将如何演变？",
+    intro: "比较趋势延续、负担分化减弱和负担分化加速三种透明压力测试。所有数值均以2019年为基线，是条件性估计而非政策承诺或无条件预测。",
+    TrendContinuation: "趋势延续",
+    AttenuatedBurdenDivergence: "负担分化减弱",
+    AcceleratedBurdenDivergence: "负担分化加速",
+    scenarioHint: "选择情景",
+    outcomeHint: "地图指标",
+    Divergence: "致死/非致死分化",
+    Suicide: "自杀死亡率",
+    Anxiety: "焦虑患病率",
+    Depression: "抑郁患病率",
+    medianChange: "2030中位变化",
+    countriesUp: "上升国家",
+    countriesDown: "下降国家",
+    areas: "200个国家和地区",
+    trajectoryTitle: "全球中位预测轨迹",
+    trajectorySub: "相对2019年的跨国中位变化（%）",
+    mapTitle: "2030年国家分布",
+    mapSub: "点击国家可联动下方表格",
+    high: "较高",
+    low: "较低",
+    noData: "暂无数据",
+    rankingTitle: "国家情景结果",
+    rankingSub: "按当前地图指标排序；所有变化均相对2019年",
     search: "搜索国家或代码",
-    rank: "情景排名",
     country: "国家或地区",
-    score: "情景得分",
-    movement: "较论文基准",
-    structure: "长期负担",
-    trend: "变化趋势",
-    loading: "正在载入最终研究数据…",
-    note: "论文基准为长期联合负担60%、联合增长40%，两类结局各占50%。本页仅用于敏感性探索。",
-    up: "上升",
-    down: "下降",
-    unchanged: "不变",
-    areas: "个国家和地区",
-    axisStructure: "长期标准化负担",
-    axisMomentum: "标准化变化趋势",
+    divergence: "分化",
+    nonFatal: "非致死均值",
+    note: "情景结果用于检验观察到的分化在不同强度下是否持续，不用于宣称确定的未来。",
+    selected: "聚焦国家",
   },
   en: {
-    documentTitle: "Ranking scenario lab — SYSU3DAILAB MIND ATLAS",
-    kicker: "EXPERIMENTAL WEIGHTING",
-    titleA: "What happens to global rankings",
-    titleB: "when the analytical lens changes?",
-    intro: "Adjust outcome and temporal weights to recalculate composite burden rankings across the final 231-country panel. Results are exploratory scenarios, not replacements for the main analysis.",
-    outcomeWeight: "Outcome weighting",
-    anxietyWeight: "Anxiety prevalence",
-    suicideWeight: "Suicide mortality",
-    timeWeight: "Temporal weighting",
-    structuralWeight: "Long-term mean burden",
-    momentumWeight: "Change momentum",
-    presets: "Quick scenarios",
-    balanced: "Balanced lens",
-    anxiety: "Anxiety priority",
-    suicide: "Suicide prevention",
-    emerging: "Emerging risk",
-    reset: "Restore paper baseline",
-    scenarioLeader: "Scenario leader",
-    largestRise: "Largest upward move",
-    largestFall: "Largest downward move",
-    countries: "Ranked areas",
-    pressureMap: "Structural burden × change momentum",
-    pressureSub: "The upper-right quadrant combines high long-term burden with an increasing trend",
-    topRanking: "Top 20 scenario ranks",
-    topSub: "Bar length represents the standardized scenario score",
-    fullRanking: "All countries and territories",
+    documentTitle: "Conditional scenarios to 2030 — SYSU3DAILAB MIND ATLAS",
+    kicker: "CONDITIONAL ESTIMATES TO 2030",
+    titleA: "How will the global burden gap evolve",
+    titleB: "under three transparent scenarios?",
+    intro: "Compare trend continuation with attenuated and accelerated burden divergence. All values are conditional estimates relative to 2019, not policy commitments or unconditional forecasts.",
+    TrendContinuation: "Trend continuation",
+    AttenuatedBurdenDivergence: "Attenuated divergence",
+    AcceleratedBurdenDivergence: "Accelerated divergence",
+    scenarioHint: "Select scenario",
+    outcomeHint: "Map outcome",
+    Divergence: "Fatal/non-fatal divergence",
+    Suicide: "Suicide mortality",
+    Anxiety: "Anxiety prevalence",
+    Depression: "Depressive prevalence",
+    medianChange: "Median change in 2030",
+    countriesUp: "Countries increasing",
+    countriesDown: "Countries declining",
+    areas: "200 countries and territories",
+    trajectoryTitle: "Global median trajectories",
+    trajectorySub: "Cross-country median change relative to 2019 (%)",
+    mapTitle: "National distribution in 2030",
+    mapSub: "Select a country to connect the map and table",
+    high: "HIGHER",
+    low: "LOWER",
+    noData: "No data",
+    rankingTitle: "Country scenario results",
+    rankingSub: "Sorted by the active map measure; all changes are relative to 2019",
     search: "Search country or code",
-    rank: "Scenario rank",
     country: "Country or area",
-    score: "Scenario score",
-    movement: "Vs paper baseline",
-    structure: "Long-term burden",
-    trend: "Change momentum",
-    loading: "Loading final research data…",
-    note: "The paper baseline assigns 60% to long-term joint burden, 40% to joint increase, and equal weight to both outcomes. This page is for sensitivity exploration only.",
-    up: "up",
-    down: "down",
-    unchanged: "unchanged",
-    areas: "countries and territories",
-    axisStructure: "Standardized long-term burden",
-    axisMomentum: "Standardized change momentum",
+    divergence: "Divergence",
+    nonFatal: "Non-fatal mean",
+    note: "Scenarios test whether the observed divergence persists at different intensities; they do not claim a certain future.",
+    selected: "Focus country",
   },
 };
 
-function average(values: number[]) {
-  return values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
+const scenarioCopyKey: Record<
+  Scenario,
+  "TrendContinuation" | "AttenuatedBurdenDivergence" | "AcceleratedBurdenDivergence"
+> = {
+  "Trend continuation": "TrendContinuation",
+  "Attenuated burden divergence": "AttenuatedBurdenDivergence",
+  "Accelerated burden divergence": "AcceleratedBurdenDivergence",
+};
+
+function percentChange(prediction: number, baseline: number) {
+  return baseline > 0 ? ((prediction / baseline) - 1) * 100 : 0;
 }
 
-function standardize(values: number[]) {
-  const mean = average(values);
-  const variance = average(values.map((value) => (value - mean) ** 2));
-  const sd = Math.sqrt(variance) || 1;
-  return values.map((value) => (value - mean) / sd);
+function fmt(value: number, digits = 1) {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(digits)}%`;
 }
 
-function logSlope(rows: PanelRow[], accessor: (row: PanelRow) => number) {
-  if (rows.length < 2) return 0;
-  const xs = rows.map((row) => row.year - rows[0].year);
-  const ys = rows.map((row) => Math.log(Math.max(accessor(row), 0.000001)));
-  const meanX = average(xs);
-  const meanY = average(ys);
-  const denominator = xs.reduce((sum, x) => sum + (x - meanX) ** 2, 0);
-  if (!denominator) return 0;
-  return xs.reduce((sum, x, index) => sum + (x - meanX) * (ys[index] - meanY), 0) / denominator;
+function mapCountryName(code: string, fallback: string) {
+  const numericCode = countries.alpha3ToNumeric(code);
+  return (numericCode && atlasNameByNumericCode.get(numericCode)) || fallback;
 }
 
-function normalizePanel(data: Record<string, unknown>[]) {
-  return data.flatMap((row) => {
-    const code = String(row.country_code ?? row.Code ?? row.code ?? "").trim().toUpperCase();
-    const name = String(row.country_name ?? row.NAME ?? row.name ?? code).trim();
-    const year = Number(row.year ?? row.Year);
-    const suicide = Number(row.suicide_rate ?? row.Sui_R ?? row.suicide);
-    const anxiety = Number(row.anxiety_disorder_prevalence ?? row.axi ?? row.anxiety);
-    if (!code || !name || !Number.isFinite(year) || !Number.isFinite(suicide) || !Number.isFinite(anxiety)) return [];
-    return [{ code, name, year, suicide, anxiety }];
+function displayName(code: string, fallback: string, lang: AtlasLanguage) {
+  return countries.getName(code, lang, { select: "official" }) || fallback;
+}
+
+function parseProjections(rows: Record<string, unknown>[]) {
+  return rows.flatMap((row): ProjectionRow[] => {
+    const code = String(row.country_code ?? "").trim().toUpperCase();
+    const name = String(row.country_name ?? code).trim();
+    const continent = String(row.continent ?? "").trim();
+    const year = Number(row.year);
+    const scenario = String(row.scenario) as Scenario;
+    const outcome = String(row.outcome) as Exclude<Outcome, "Divergence">;
+    const prediction = Number(row.prediction);
+    const baseline = Number(row.baseline_2019);
+    if (!code || !scenarioOrder.includes(scenario) || !["Suicide", "Anxiety", "Depression"].includes(outcome) || !Number.isFinite(year) || !Number.isFinite(prediction) || !Number.isFinite(baseline)) return [];
+    return [{ code, name, continent, year, scenario, outcome, prediction, baseline }];
   });
 }
 
-function displayName(country: Pick<ScenarioCountry, "code" | "name">, lang: AtlasLanguage) {
-  return countries.getName(country.code, lang, { select: "official" }) || country.name;
+function parseTrajectories(rows: Record<string, unknown>[]) {
+  return rows.flatMap((row): TrajectoryRow[] => {
+    const scenario = String(row.scenario) as Scenario;
+    const outcome = String(row.outcome) as Exclude<Outcome, "Divergence">;
+    const year = Number(row.year);
+    const p25 = Number(row.p25);
+    const median = Number(row.median);
+    const mean = Number(row.mean);
+    const p75 = Number(row.p75);
+    if (!scenarioOrder.includes(scenario) || !["Suicide", "Anxiety", "Depression"].includes(outcome) || ![year, p25, median, mean, p75].every(Number.isFinite)) return [];
+    return [{ scenario, outcome, year, p25, median, mean, p75 }];
+  });
+}
+
+function parseSummaries(rows: Record<string, unknown>[]) {
+  return rows.flatMap((row): SummaryRow[] => {
+    const scenario = String(row.scenario) as Scenario;
+    const outcome = String(row.outcome) as Exclude<Outcome, "Divergence">;
+    const medianChange = Number(row.median_change);
+    const meanChange = Number(row.mean_change);
+    const increases = Number(row.countries_increase);
+    const declines = Number(row.countries_decline);
+    if (!scenarioOrder.includes(scenario) || !["Suicide", "Anxiety", "Depression"].includes(outcome) || ![medianChange, meanChange, increases, declines].every(Number.isFinite)) return [];
+    return [{ scenario, outcome, medianChange, meanChange, increases, declines }];
+  });
 }
 
 function ScenarioChart({ option, className, onClick }: { option: echarts.EChartsOption; className: string; onClick?: (params: unknown) => void }) {
@@ -167,7 +230,7 @@ function ScenarioChart({ option, className, onClick }: { option: echarts.ECharts
   useEffect(() => {
     if (!node.current) return;
     const chart = echarts.getInstanceByDom(node.current) || echarts.init(node.current, undefined, { renderer: "canvas" });
-    chart.setOption(option, { notMerge: true });
+    chart.setOption(option, { notMerge: true, lazyUpdate: true });
     chart.off("click");
     if (onClick) chart.on("click", onClick);
     const observer = new ResizeObserver(() => chart.resize());
@@ -182,13 +245,14 @@ function ScenarioChart({ option, className, onClick }: { option: echarts.ECharts
 
 export default function ScenarioPage() {
   const [lang, setLang] = useState<AtlasLanguage>("zh");
-  const [rows, setRows] = useState<PanelRow[]>([]);
-  const [anxietyWeight, setAnxietyWeight] = useState(50);
-  const [structuralWeight, setStructuralWeight] = useState(60);
-  const [preset, setPreset] = useState<ScenarioPreset>("balanced");
+  const [scenario, setScenario] = useState<Scenario>("Trend continuation");
+  const [outcome, setOutcome] = useState<Outcome>("Divergence");
+  const [projections, setProjections] = useState<ProjectionRow[]>([]);
+  const [trajectories, setTrajectories] = useState<TrajectoryRow[]>([]);
+  const [summaries, setSummaries] = useState<SummaryRow[]>([]);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState("CHN");
-  const t = scenarioCopy[lang];
+  const t = copy[lang];
 
   useEffect(() => {
     document.title = t.documentTitle;
@@ -197,159 +261,179 @@ export default function ScenarioPage() {
 
   useEffect(() => {
     let active = true;
-    fetch("./data/main_country_year_panel_231_2000_2019_FINAL.csv")
-      .then((response) => response.text())
-      .then((text) => {
-        if (!active) return;
-        const parsed = Papa.parse<Record<string, unknown>>(text, { header: true, skipEmptyLines: true });
-        setRows(normalizePanel(parsed.data));
-      });
+    Promise.all([
+      fetch("./data/figure4_new_3_country_projections.csv").then((response) => response.text()),
+      fetch("./data/figure4_new_3_global_trajectories.csv").then((response) => response.text()),
+      fetch("./data/figure4_new_3_2030_summary.csv").then((response) => response.text()),
+    ]).then(([projectionText, trajectoryText, summaryText]) => {
+      if (!active) return;
+      setProjections(parseProjections(Papa.parse<Record<string, unknown>>(projectionText, { header: true, skipEmptyLines: true }).data));
+      setTrajectories(parseTrajectories(Papa.parse<Record<string, unknown>>(trajectoryText, { header: true, skipEmptyLines: true }).data));
+      setSummaries(parseSummaries(Papa.parse<Record<string, unknown>>(summaryText, { header: true, skipEmptyLines: true }).data));
+    });
     return () => { active = false; };
   }, []);
 
-  const ranking = useMemo<ScenarioCountry[]>(() => {
-    const grouped = new Map<string, PanelRow[]>();
-    rows.forEach((row) => grouped.set(row.code, [...(grouped.get(row.code) || []), row]));
-    const raw = [...grouped.entries()].map(([code, series]) => {
-      const ordered = [...series].sort((a, b) => a.year - b.year);
-      return {
-        code,
-        name: ordered[0].name,
-        meanSuicide: average(ordered.map((row) => row.suicide)),
-        meanAnxiety: average(ordered.map((row) => row.anxiety)),
-        suicideSlope: logSlope(ordered, (row) => row.suicide),
-        anxietySlope: logSlope(ordered, (row) => row.anxiety),
-      };
+  const countryResults = useMemo<CountryScenario[]>(() => {
+    const grouped = new Map<string, ProjectionRow[]>();
+    projections.filter((row) => row.scenario === scenario && row.year === 2030).forEach((row) => grouped.set(row.code, [...(grouped.get(row.code) || []), row]));
+    return [...grouped.entries()].flatMap(([code, rows]) => {
+      const byOutcome = new Map(rows.map((row) => [row.outcome, row]));
+      const suicideRow = byOutcome.get("Suicide");
+      const anxietyRow = byOutcome.get("Anxiety");
+      const depressionRow = byOutcome.get("Depression");
+      if (!suicideRow || !anxietyRow || !depressionRow) return [];
+      const suicide = percentChange(suicideRow.prediction, suicideRow.baseline);
+      const anxiety = percentChange(anxietyRow.prediction, anxietyRow.baseline);
+      const depression = percentChange(depressionRow.prediction, depressionRow.baseline);
+      const nonFatal = (anxiety + depression) / 2;
+      return [{ code, name: suicideRow.name, continent: suicideRow.continent, suicide, anxiety, depression, nonFatal, divergence: nonFatal - suicide }];
     });
-    const suicideMeanZ = standardize(raw.map((item) => item.meanSuicide));
-    const anxietyMeanZ = standardize(raw.map((item) => item.meanAnxiety));
-    const suicideSlopeZ = standardize(raw.map((item) => item.suicideSlope));
-    const anxietySlopeZ = standardize(raw.map((item) => item.anxietySlope));
-    const a = anxietyWeight / 100;
-    const s = structuralWeight / 100;
-    const computed = raw.map((item, index) => {
-      const structural = a * anxietyMeanZ[index] + (1 - a) * suicideMeanZ[index];
-      const momentum = a * anxietySlopeZ[index] + (1 - a) * suicideSlopeZ[index];
-      const score = s * structural + (1 - s) * momentum;
-      const baseline = 0.6 * (0.5 * anxietyMeanZ[index] + 0.5 * suicideMeanZ[index]) + 0.4 * (0.5 * anxietySlopeZ[index] + 0.5 * suicideSlopeZ[index]);
-      return { ...item, structural, momentum, score, baseline };
-    });
-    const currentOrder = [...computed].sort((left, right) => right.score - left.score);
-    const baselineOrder = [...computed].sort((left, right) => right.baseline - left.baseline);
-    const baselineRank = new Map(baselineOrder.map((item, index) => [item.code, index + 1]));
-    return currentOrder.map((item, index) => ({
-      code: item.code,
-      name: item.name,
-      structural: item.structural,
-      momentum: item.momentum,
-      score: item.score,
-      rank: index + 1,
-      baselineRank: baselineRank.get(item.code) || index + 1,
-      movement: (baselineRank.get(item.code) || index + 1) - (index + 1),
-      meanSuicide: item.meanSuicide,
-      meanAnxiety: item.meanAnxiety,
-    }));
-  }, [anxietyWeight, rows, structuralWeight]);
+  }, [projections, scenario]);
 
-  const largestRise = useMemo(() => [...ranking].sort((a, b) => b.movement - a.movement)[0], [ranking]);
-  const largestFall = useMemo(() => [...ranking].sort((a, b) => a.movement - b.movement)[0], [ranking]);
-  const filtered = useMemo(() => {
+  const metricValue = useCallback((row: CountryScenario) => outcome === "Divergence" ? row.divergence : row[outcome.toLowerCase() as "suicide" | "anxiety" | "depression"], [outcome]);
+  const sortedCountries = useMemo(() => [...countryResults].sort((a, b) => metricValue(b) - metricValue(a)), [countryResults, metricValue]);
+  const filteredCountries = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return needle ? ranking.filter((item) => `${item.code} ${item.name} ${displayName(item, lang)}`.toLowerCase().includes(needle)) : ranking;
-  }, [lang, query, ranking]);
+    return needle ? sortedCountries.filter((row) => `${row.code} ${row.name} ${displayName(row.code, row.name, lang)}`.toLowerCase().includes(needle)) : sortedCountries;
+  }, [lang, query, sortedCountries]);
+  const selectedCountry = countryResults.find((row) => row.code === selected) || sortedCountries[0];
 
-  const applyPreset = (next: ScenarioPreset) => {
-    setPreset(next);
-    if (next === "balanced") { setAnxietyWeight(50); setStructuralWeight(60); }
-    if (next === "anxiety") { setAnxietyWeight(75); setStructuralWeight(60); }
-    if (next === "suicide") { setAnxietyWeight(25); setStructuralWeight(60); }
-    if (next === "emerging") { setAnxietyWeight(50); setStructuralWeight(35); }
-  };
+  const summaryByOutcome = useMemo(() => new Map(
+    summaries.filter((row) => row.scenario === scenario).map((row) => [row.outcome, row]),
+  ), [scenario, summaries]);
 
-  const barCountries = ranking.slice(0, 20).reverse();
-  const barOption = useMemo<echarts.EChartsOption>(() => ({
-    animationDuration: 500,
-    grid: { left: 126, right: 38, top: 16, bottom: 30 },
-    xAxis: { type: "value", axisLabel: { color: "#607683", fontSize: 9 }, splitLine: { lineStyle: { color: "rgba(136,174,194,.08)" } } },
-    yAxis: { type: "category", data: barCountries.map((item) => displayName(item, lang)), axisLabel: { color: "#a8bac3", fontSize: 9, width: 108, overflow: "truncate" }, axisLine: { show: false }, axisTick: { show: false } },
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "#08141b", borderColor: "#334a58", textStyle: { color: "#ecf7fb", fontSize: 11 } },
-    series: [{ type: "bar", data: barCountries.map((item, index) => ({ value: item.score, code: item.code, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: "#6a4bb2" }, { offset: Math.min(1, 0.45 + index / 60), color: "#ed718f" }, { offset: 1, color: "#f3c66f" }]) } })), barWidth: 10, label: { show: true, position: "right", color: "#dcebf1", fontSize: 8, formatter: ({ value }: { value: unknown }) => Number(value).toFixed(2) } }],
-  }), [barCountries, lang]);
+  const trajectoryOption = useMemo<echarts.EChartsOption>(() => {
+    const active = trajectories.filter((row) => row.scenario === scenario);
+    const years = [...new Set(active.map((row) => row.year))].sort((a, b) => a - b);
+    return {
+      animationDuration: 550,
+      grid: { left: 56, right: 26, top: 48, bottom: 42 },
+      legend: { top: 6, left: 10, textStyle: { color: "#8296a1", fontSize: 9 }, itemWidth: 13, data: [t.Suicide, t.Anxiety, t.Depression] },
+      tooltip: { trigger: "axis", backgroundColor: "#08141b", borderColor: "#334a58", textStyle: { color: "#ecf7fb", fontSize: 10 } },
+      xAxis: { type: "category", data: years, boundaryGap: false, axisLabel: { color: "#607683", fontSize: 8 }, axisLine: { lineStyle: { color: "#2a3c47" } }, axisTick: { show: false } },
+      yAxis: { type: "value", name: "%", nameTextStyle: { color: "#607683", fontSize: 8 }, axisLabel: { color: "#607683", fontSize: 8, formatter: "{value}%" }, splitLine: { lineStyle: { color: "rgba(136,174,194,.09)" } } },
+      series: (["Suicide", "Anxiety", "Depression"] as const).map((item) => ({
+        name: t[item],
+        type: "line",
+        showSymbol: false,
+        smooth: 0.28,
+        data: years.map((year) => active.find((row) => row.outcome === item && row.year === year)?.median ?? null),
+        lineStyle: { color: colors[item], width: 2.6 },
+        itemStyle: { color: colors[item] },
+        markLine: item === "Suicide" ? { silent: true, symbol: "none", lineStyle: { color: "rgba(210,225,232,.24)", width: 1 }, data: [{ yAxis: 0 }] } : undefined,
+      })),
+    };
+  }, [scenario, t, trajectories]);
 
-  const scatterOption = useMemo<echarts.EChartsOption>(() => ({
-    animationDuration: 600,
-    grid: { left: 58, right: 30, top: 28, bottom: 52 },
-    xAxis: { name: t.axisStructure, nameLocation: "middle", nameGap: 34, nameTextStyle: { color: "#6f8490", fontSize: 9 }, axisLabel: { color: "#607683", fontSize: 8 }, splitLine: { lineStyle: { color: "rgba(136,174,194,.08)" } } },
-    yAxis: { name: t.axisMomentum, nameLocation: "middle", nameGap: 40, nameTextStyle: { color: "#6f8490", fontSize: 9 }, axisLabel: { color: "#607683", fontSize: 8 }, splitLine: { lineStyle: { color: "rgba(136,174,194,.08)" } } },
-    tooltip: { backgroundColor: "#08141b", borderColor: "#334a58", textStyle: { color: "#ecf7fb", fontSize: 10 }, formatter: (params: unknown) => { const data = (params as { data: { code: string; name: string; value: number[]; rank: number } }).data; return `<b>${data.name}</b> · ${data.code}<br/>#${data.rank}<br/>${t.structure}: ${data.value[0].toFixed(2)}<br/>${t.trend}: ${data.value[1].toFixed(2)}`; } },
-    series: [{ type: "scatter", symbolSize: (value: number[]) => Math.max(5, Math.min(18, 7 + Math.abs(value[2]) * 2.6)), data: ranking.map((item) => ({ code: item.code, name: displayName(item, lang), rank: item.rank, value: [item.structural, item.momentum, item.score], itemStyle: { color: item.code === selected ? "#f6d47d" : item.rank <= 20 ? "#ed718f" : "#5d78a9", opacity: item.code === selected ? 1 : item.rank <= 20 ? 0.82 : 0.42 }, label: { show: item.code === selected, formatter: item.code, position: "top", color: "#f6d47d", fontSize: 9 } })) }],
-  }), [lang, ranking, selected, t.axisMomentum, t.axisStructure, t.structure, t.trend]);
+  const mapOption = useMemo<echarts.EChartsOption>(() => {
+    const values = countryResults.map(metricValue);
+    const min = Math.min(...values, 0);
+    const max = Math.max(...values, 0);
+    const span = Math.max(Math.abs(min), Math.abs(max), 1);
+    const palette = outcome === "Suicide"
+      ? ["#173b7a", "#4f78c8", "#e9eef5", "#c9d5e6"]
+      : outcome === "Anxiety"
+        ? ["#f4ebf1", "#d97cb3", "#7f3292", "#3c145f"]
+        : outcome === "Depression"
+          ? ["#f0eef7", "#a8aad5", "#7661aa", "#4c2b82"]
+          : ["#173b7a", "#6f92c8", "#f4f2f5", "#ba79b2", "#5a176e"];
+    return {
+      animationDurationUpdate: 600,
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "rgba(7,12,18,.96)",
+        borderColor: "#3b4e59",
+        textStyle: { color: "#eef9ff", fontSize: 10 },
+        formatter: (params: unknown) => {
+          const row = (params as { data?: CountryScenario }).data;
+          if (!row) return t.noData;
+          return `<b>${displayName(row.code, row.name, lang)}</b> · ${row.code}<br/>${t.Suicide}: ${fmt(row.suicide)}<br/>${t.Anxiety}: ${fmt(row.anxiety)}<br/>${t.Depression}: ${fmt(row.depression)}<br/>${t.divergence}: ${fmt(row.divergence)}`;
+        },
+      },
+      visualMap: {
+        type: "continuous",
+        min: outcome === "Divergence" ? -span : min,
+        max: outcome === "Divergence" ? span : max,
+        left: "center",
+        bottom: 7,
+        orient: "horizontal",
+        itemWidth: 8,
+        itemHeight: 190,
+        text: [t.high, t.low],
+        textStyle: { color: "#7d929e", fontSize: 8 },
+        inRange: { color: palette },
+        calculable: false,
+        borderColor: "transparent",
+      },
+      series: [{
+        type: "map",
+        map: "mind-world",
+        roam: true,
+        zoom: 1.06,
+        top: 0,
+        bottom: 35,
+        data: countryResults.map((row) => ({ ...row, name: mapCountryName(row.code, row.name), value: metricValue(row) })),
+        itemStyle: { areaColor: "#111d26", borderColor: "#2b3c47", borderWidth: 0.55 },
+        emphasis: { label: { show: false }, itemStyle: { areaColor: "#f3cb70", borderColor: "#fff2be", borderWidth: 1.1 } },
+        select: { label: { show: false }, itemStyle: { areaColor: "#f3cb70", borderColor: "#ffffff" } },
+      }],
+    };
+  }, [countryResults, lang, metricValue, outcome, t.Anxiety, t.Depression, t.Suicide, t.divergence, t.high, t.low, t.noData]);
 
-  const handleChartClick = (params: unknown) => {
-    const code = (params as { data?: { code?: string } })?.data?.code;
+  const handleMapClick = useCallback((params: unknown) => {
+    const code = (params as { data?: { code?: string } }).data?.code;
     if (code) setSelected(code);
-  };
+  }, []);
 
-  const movementLabel = (value: number) => value > 0 ? `${t.up} ${value}` : value < 0 ? `${t.down} ${Math.abs(value)}` : t.unchanged;
+  if (!countryResults.length) return <main className="app-shell feature-page scenario-page"><AtlasNav lang={lang} active="scenario" onLanguage={() => setLang(lang === "zh" ? "en" : "zh")} /><div className="feature-loading">Loading…</div></main>;
 
   return (
     <main className="app-shell feature-page scenario-page">
       <div className="ambient ambient-one" /><div className="ambient ambient-two" />
       <AtlasNav lang={lang} active="scenario" onLanguage={() => setLang(lang === "zh" ? "en" : "zh")} />
 
-      <section className="feature-hero">
-        <span className="feature-kicker"><FlaskConical size={15} />{t.kicker}</span>
+      <section className="feature-hero scenario-forecast-hero">
+        <span className="feature-kicker"><Sparkles size={15} />{t.kicker}</span>
         <h1><span>{t.titleA}</span><span>{t.titleB}</span></h1>
         <p>{t.intro}</p>
       </section>
 
-      <section className="scenario-controls feature-width">
-        <article className="weight-card">
-          <div className="weight-card-head"><span><Activity size={16} />{t.outcomeWeight}</span><strong>{anxietyWeight}<small>/</small>{100 - anxietyWeight}</strong></div>
-          <div className="weight-labels"><span>{t.anxietyWeight}</span><span>{t.suicideWeight}</span></div>
-          <input type="range" min="0" max="100" value={anxietyWeight} style={{ "--range-progress": `${anxietyWeight}%` } as React.CSSProperties} onChange={(event) => { setAnxietyWeight(Number(event.target.value)); setPreset("balanced"); }} aria-label={t.outcomeWeight} />
+      <section className="forecast-controls feature-width">
+        <div><span>{t.scenarioHint}</span><div className="forecast-segments">{scenarioOrder.map((item) => <button key={item} className={scenario === item ? "active" : ""} onClick={() => setScenario(item)}>{t[scenarioCopyKey[item]]}</button>)}</div></div>
+        <div><span>{t.outcomeHint}</span><div className="forecast-segments outcome-segments">{outcomeOrder.map((item) => <button key={item} className={outcome === item ? "active" : ""} onClick={() => setOutcome(item)}>{t[item]}</button>)}</div></div>
+      </section>
+
+      <section className="forecast-kpis feature-width">
+        {(["Suicide", "Anxiety", "Depression"] as const).map((item) => {
+          const summary = summaryByOutcome.get(item);
+          return <article key={item} style={{ "--outcome-color": colors[item] } as React.CSSProperties}>
+            <Activity size={17} /><span>{t[item]}</span><strong>{fmt(summary?.medianChange || 0)}</strong><small>{t.medianChange} · {summary?.increases || 0} {t.countriesUp.toLowerCase()}</small>
+          </article>;
+        })}
+        <article className="forecast-focus"><Globe2 size={17} /><span>{t.selected}</span><strong>{displayName(selectedCountry.code, selectedCountry.name, lang)}</strong><small>{selectedCountry.code} · {t.areas}</small></article>
+      </section>
+
+      <section className="forecast-grid feature-width">
+        <article className="panel forecast-trajectory-panel">
+          <div className="feature-panel-head"><div><span>01</span><h2>{t.trajectoryTitle}</h2><p>{t.trajectorySub}</p></div><i>{t[scenarioCopyKey[scenario]]}</i></div>
+          <ScenarioChart option={trajectoryOption} className="forecast-trajectory" />
         </article>
-        <article className="weight-card">
-          <div className="weight-card-head"><span><SlidersHorizontal size={16} />{t.timeWeight}</span><strong>{structuralWeight}<small>/</small>{100 - structuralWeight}</strong></div>
-          <div className="weight-labels"><span>{t.structuralWeight}</span><span>{t.momentumWeight}</span></div>
-          <input type="range" min="0" max="100" value={structuralWeight} style={{ "--range-progress": `${structuralWeight}%` } as React.CSSProperties} onChange={(event) => { setStructuralWeight(Number(event.target.value)); setPreset("balanced"); }} aria-label={t.timeWeight} />
-        </article>
-        <article className="preset-card">
-          <span>{t.presets}</span>
-          <div>{(["balanced", "anxiety", "suicide", "emerging"] as ScenarioPreset[]).map((item) => <button key={item} className={preset === item ? "active" : ""} onClick={() => applyPreset(item)}>{t[item]}</button>)}</div>
-          <button className="reset-link" onClick={() => applyPreset("balanced")}><RotateCcw size={13} />{t.reset}</button>
+        <article className="panel forecast-map-panel">
+          <div className="feature-panel-head"><div><span>02</span><h2>{t.mapTitle}</h2><p>{t.mapSub}</p></div><i>{t[outcome]}</i></div>
+          <ScenarioChart option={mapOption} className="forecast-map" onClick={handleMapClick} />
         </article>
       </section>
 
-      {!ranking.length ? <div className="feature-loading">{t.loading}</div> : <>
-        <section className="scenario-kpis feature-width">
-          <article><Sparkles size={18} /><span>{t.scenarioLeader}</span><strong>{displayName(ranking[0], lang)}</strong><small>#1 · {ranking[0].score.toFixed(2)}</small></article>
-          <article><ArrowUpRight size={18} /><span>{t.largestRise}</span><strong>{displayName(largestRise, lang)}</strong><small>+{largestRise.movement}</small></article>
-          <article><ArrowDownRight size={18} /><span>{t.largestFall}</span><strong>{displayName(largestFall, lang)}</strong><small>{largestFall.movement}</small></article>
-          <article><Target size={18} /><span>{t.countries}</span><strong>{ranking.length}</strong><small>{t.areas}</small></article>
-        </section>
+      <section className="panel forecast-table-panel feature-width">
+        <div className="feature-panel-head"><div><span>03</span><h2>{t.rankingTitle}</h2><p>{t.rankingSub}</p></div><label className="scenario-search"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} /></label></div>
+        <div className="forecast-table-head"><span>#</span><span>{t.country}</span><span>{t.Suicide}</span><span>{t.Anxiety}</span><span>{t.Depression}</span><span>{t.nonFatal}</span><span>{t.divergence}</span></div>
+        <div className="forecast-table-body">{filteredCountries.map((row, index) => <button key={row.code} className={selected === row.code ? "selected" : ""} onClick={() => setSelected(row.code)}>
+          <span>{String(index + 1).padStart(2, "0")}</span><span><i>{row.code}</i><strong>{displayName(row.code, row.name, lang)}</strong></span><em className={row.suicide >= 0 ? "rise" : "fall"}>{fmt(row.suicide)}</em><em className={row.anxiety >= 0 ? "rise" : "fall"}>{fmt(row.anxiety)}</em><em className={row.depression >= 0 ? "rise" : "fall"}>{fmt(row.depression)}</em><span>{fmt(row.nonFatal)}</span><b>{fmt(row.divergence)}</b>
+        </button>)}</div>
+      </section>
 
-        <section className="scenario-grid feature-width">
-          <article className="panel scenario-scatter-panel">
-            <div className="feature-panel-head"><div><span>01</span><h2>{t.pressureMap}</h2><p>{t.pressureSub}</p></div><i>{anxietyWeight}% / {structuralWeight}%</i></div>
-            <ScenarioChart option={scatterOption} className="scenario-scatter" onClick={handleChartClick} />
-          </article>
-          <article className="panel scenario-bar-panel">
-            <div className="feature-panel-head"><div><span>02</span><h2>{t.topRanking}</h2><p>{t.topSub}</p></div></div>
-            <ScenarioChart option={barOption} className="scenario-bars" onClick={handleChartClick} />
-          </article>
-        </section>
-
-        <section className="panel scenario-table-panel feature-width">
-          <div className="feature-panel-head"><div><span>03</span><h2>{t.fullRanking}</h2><p>{t.note}</p></div><label className="scenario-search"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} /></label></div>
-          <div className="scenario-table-head"><span>{t.rank}</span><span>{t.country}</span><span>{t.score}</span><span>{t.movement}</span><span>{t.structure}</span><span>{t.trend}</span></div>
-          <div className="scenario-table-body">{filtered.map((item) => <button key={item.code} className={selected === item.code ? "selected" : ""} onClick={() => setSelected(item.code)}>
-            <span>#{item.rank}</span><span><i>{item.code}</i><strong>{displayName(item, lang)}</strong></span><b>{item.score.toFixed(2)}</b><em className={item.movement > 0 ? "rise" : item.movement < 0 ? "fall" : ""}>{movementLabel(item.movement)}</em><span>{item.structural.toFixed(2)}</span><span>{item.momentum.toFixed(2)}</span>
-          </button>)}</div>
-        </section>
-      </>}
-
-      <footer className="feature-footer"><span>SYSU3DAILAB // MIND ATLAS</span><p>{t.note}</p><span>SCENARIO LAB / v0.2</span></footer>
+      <footer className="feature-footer"><span>SYSU3DAILAB // MIND ATLAS</span><p>{t.note}</p><span>2030 SCENARIOS / v0.3</span></footer>
     </main>
   );
 }

@@ -8,7 +8,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol = requestHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
   const metadataBase = new URL(`${protocol}://${host}`);
   const title = "SYSU3DAILAB // MIND ATLAS — Global Mental Burden Observatory";
-  const description = "Interactive global rankings and trajectories for anxiety prevalence and suicide mortality.";
+  const description = "Interactive global trajectories, rankings and 2030 scenarios for suicide mortality and anxiety- and depressive-disorder prevalence.";
   return {
     metadataBase,
     title,
