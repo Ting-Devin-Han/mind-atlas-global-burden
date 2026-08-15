@@ -9,6 +9,7 @@ import zhCountries from "i18n-iso-countries/langs/zh.json";
 import worldAtlas from "world-atlas/countries-110m.json";
 import { Activity, Globe2, Search, Sparkles } from "lucide-react";
 import AtlasNav, { type AtlasLanguage } from "./atlas-nav";
+import { uiFontFamily } from "../src/typography";
 
 countries.registerLocale(enCountries);
 countries.registerLocale(zhCountries);
@@ -309,11 +310,12 @@ export default function ScenarioPage() {
     const years = [...new Set(active.map((row) => row.year))].sort((a, b) => a - b);
     return {
       animationDuration: 550,
+      textStyle: { fontFamily: uiFontFamily },
       grid: { left: 56, right: 26, top: 48, bottom: 42 },
-      legend: { top: 6, left: 10, textStyle: { color: "#8296a1", fontSize: 9 }, itemWidth: 13, data: [t.Suicide, t.Anxiety, t.Depression] },
-      tooltip: { trigger: "axis", backgroundColor: "#08141b", borderColor: "#334a58", textStyle: { color: "#ecf7fb", fontSize: 10 } },
-      xAxis: { type: "category", data: years, boundaryGap: false, axisLabel: { color: "#607683", fontSize: 8 }, axisLine: { lineStyle: { color: "#2a3c47" } }, axisTick: { show: false } },
-      yAxis: { type: "value", name: "%", nameTextStyle: { color: "#607683", fontSize: 8 }, axisLabel: { color: "#607683", fontSize: 8, formatter: "{value}%" }, splitLine: { lineStyle: { color: "rgba(136,174,194,.09)" } } },
+      legend: { top: 6, left: 10, textStyle: { color: "#8296a1", fontSize: 11, fontFamily: uiFontFamily }, itemWidth: 13, data: [t.Suicide, t.Anxiety, t.Depression] },
+      tooltip: { trigger: "axis", backgroundColor: "#08141b", borderColor: "#334a58", textStyle: { color: "#ecf7fb", fontSize: 12, fontFamily: uiFontFamily } },
+      xAxis: { type: "category", data: years, boundaryGap: false, axisLabel: { color: "#607683", fontSize: 10, fontFamily: uiFontFamily }, axisLine: { lineStyle: { color: "#2a3c47" } }, axisTick: { show: false } },
+      yAxis: { type: "value", name: "%", nameTextStyle: { color: "#607683", fontSize: 10, fontFamily: uiFontFamily }, axisLabel: { color: "#607683", fontSize: 10, fontFamily: uiFontFamily, formatter: "{value}%" }, splitLine: { lineStyle: { color: "rgba(136,174,194,.09)" } } },
       series: (["Suicide", "Anxiety", "Depression"] as const).map((item) => ({
         name: t[item],
         type: "line",
@@ -341,11 +343,12 @@ export default function ScenarioPage() {
           : ["#173b7a", "#6f92c8", "#f4f2f5", "#ba79b2", "#5a176e"];
     return {
       animationDurationUpdate: 600,
+      textStyle: { fontFamily: uiFontFamily },
       tooltip: {
         trigger: "item",
         backgroundColor: "rgba(7,12,18,.96)",
         borderColor: "#3b4e59",
-        textStyle: { color: "#eef9ff", fontSize: 10 },
+        textStyle: { color: "#eef9ff", fontSize: 12, fontFamily: uiFontFamily },
         formatter: (params: unknown) => {
           const row = (params as { data?: CountryScenario }).data;
           if (!row) return t.noData;
@@ -362,7 +365,7 @@ export default function ScenarioPage() {
         itemWidth: 8,
         itemHeight: 190,
         text: [t.high, t.low],
-        textStyle: { color: "#7d929e", fontSize: 8 },
+        textStyle: { color: "#7d929e", fontSize: 10, fontFamily: uiFontFamily },
         inRange: { color: palette },
         calculable: false,
         borderColor: "transparent",

@@ -26,6 +26,7 @@ import worldAtlas from "world-atlas/countries-110m.json";
 import countries from "i18n-iso-countries";
 import enCountries from "i18n-iso-countries/langs/en.json";
 import zhCountries from "i18n-iso-countries/langs/zh.json";
+import { uiFontFamily } from "../src/typography";
 
 type Lang = "zh" | "en";
 type Metric = "joint" | "longTerm" | "suicide" | "anxiety" | "depression" | "divergence";
@@ -828,12 +829,13 @@ export default function Home() {
     }));
     return {
       backgroundColor: "transparent",
+      textStyle: { fontFamily: uiFontFamily },
       animationDurationUpdate: 650,
       tooltip: {
         trigger: "item",
         backgroundColor: "rgba(7, 12, 18, .96)",
         borderColor: "rgba(116, 227, 255, .3)",
-        textStyle: { color: "#eef9ff", fontFamily: "Arial" },
+        textStyle: { color: "#eef9ff", fontFamily: uiFontFamily, fontSize: 12 },
         formatter: (params: unknown) => {
           const p = params as { data?: { displayName: string; code: string; suicide: number; anxiety: number; depression: number; joint: number; longTermBurden: number } };
           if (!p.data) return t.noData;
@@ -851,7 +853,7 @@ export default function Home() {
         itemHeight: 180,
         text: [t.high, t.low],
         textGap: 9,
-        textStyle: { color: "#8aa0ad", fontSize: 9, fontFamily: "Arial" },
+        textStyle: { color: "#8aa0ad", fontSize: 11, fontFamily: uiFontFamily },
         calculable: false,
         inRange: { color: burdenMapPalette },
         outOfRange: { color: ["#172832"] },
@@ -888,22 +890,23 @@ export default function Home() {
     const countryDepression = selectedRows.map((item) => item.depressive_disorder_prevalence);
     return {
       backgroundColor: "transparent",
+      textStyle: { fontFamily: uiFontFamily },
       animationDuration: 700,
       grid: [{ left: 44, right: 18, top: 54, height: "30%" }, { left: 44, right: 42, top: "60%", bottom: 32 }],
-      tooltip: { trigger: "axis", backgroundColor: "rgba(7,12,18,.96)", borderColor: "#31434f", textStyle: { color: "#eef9ff" } },
-      legend: [{ top: 4, left: 0, textStyle: { color: "#8294a1", fontSize: 9 }, itemWidth: 12, data: [t.suicide, t.anxiety, t.depression] }],
+      tooltip: { trigger: "axis", backgroundColor: "rgba(7,12,18,.96)", borderColor: "#31434f", textStyle: { color: "#eef9ff", fontFamily: uiFontFamily, fontSize: 12 } },
+      legend: [{ top: 4, left: 0, textStyle: { color: "#8294a1", fontSize: 11, fontFamily: uiFontFamily }, itemWidth: 12, data: [t.suicide, t.anxiety, t.depression] }],
       xAxis: [
-        { type: "category", gridIndex: 0, data: years, boundaryGap: false, axisLabel: { color: "#60727f", fontSize: 9, interval: Math.max(0, Math.floor(years.length / 5) - 1) }, axisLine: { lineStyle: { color: "#283843" } }, axisTick: { show: false } },
-        { type: "category", gridIndex: 1, data: countryYears, boundaryGap: false, axisLabel: { color: "#60727f", fontSize: 9, interval: Math.max(0, Math.floor(countryYears.length / 5) - 1) }, axisLine: { lineStyle: { color: "#283843" } }, axisTick: { show: false } },
+        { type: "category", gridIndex: 0, data: years, boundaryGap: false, axisLabel: { color: "#60727f", fontSize: 10, fontFamily: uiFontFamily, interval: Math.max(0, Math.floor(years.length / 5) - 1) }, axisLine: { lineStyle: { color: "#283843" } }, axisTick: { show: false } },
+        { type: "category", gridIndex: 1, data: countryYears, boundaryGap: false, axisLabel: { color: "#60727f", fontSize: 10, fontFamily: uiFontFamily, interval: Math.max(0, Math.floor(countryYears.length / 5) - 1) }, axisLine: { lineStyle: { color: "#283843" } }, axisTick: { show: false } },
       ],
       yAxis: [
-        { type: "value", gridIndex: 0, scale: true, axisLabel: { color: "#60727f", fontSize: 9 }, splitLine: { lineStyle: { color: "rgba(95,116,130,.12)" } } },
-        { type: "value", gridIndex: 1, scale: true, position: "left", axisLabel: { color: "#4f78c8", fontSize: 9 }, splitLine: { lineStyle: { color: "rgba(95,116,130,.12)" } } },
-        { type: "value", gridIndex: 1, scale: true, position: "right", axisLabel: { color: "#d97cb3", fontSize: 9 }, splitLine: { show: false } },
+        { type: "value", gridIndex: 0, scale: true, axisLabel: { color: "#60727f", fontSize: 10, fontFamily: uiFontFamily }, splitLine: { lineStyle: { color: "rgba(95,116,130,.12)" } } },
+        { type: "value", gridIndex: 1, scale: true, position: "left", axisLabel: { color: "#4f78c8", fontSize: 10, fontFamily: uiFontFamily }, splitLine: { lineStyle: { color: "rgba(95,116,130,.12)" } } },
+        { type: "value", gridIndex: 1, scale: true, position: "right", axisLabel: { color: "#d97cb3", fontSize: 10, fontFamily: uiFontFamily }, splitLine: { show: false } },
       ],
       graphic: [
-        { type: "text", left: 0, top: 30, style: { text: t.trendGlobal, fill: "#687b88", font: "10px Arial" } },
-        { type: "text", left: 0, top: "53%", style: { text: `${t.trendCountry} · ${selectedRank ? countryLabel(selectedRank) : "—"}`, fill: "#687b88", font: "10px Arial" } },
+        { type: "text", left: 0, top: 30, style: { text: t.trendGlobal, fill: "#687b88", font: `12px ${uiFontFamily}` } },
+        { type: "text", left: 0, top: "53%", style: { text: `${t.trendCountry} · ${selectedRank ? countryLabel(selectedRank) : "—"}`, fill: "#687b88", font: `12px ${uiFontFamily}` } },
       ],
       series: [
         { name: t.suicide, type: "line", xAxisIndex: 0, yAxisIndex: 0, showSymbol: false, smooth: 0.35, data: globalSeries.map((item) => (item.suicide / globalBaseSuicide) * 100), lineStyle: { color: "#3e63af", width: 2.2 } },
@@ -923,6 +926,7 @@ export default function Home() {
     const ringValues = ringCountries.map((item) => item.joint + offset);
     return {
       backgroundColor: "transparent",
+      textStyle: { fontFamily: uiFontFamily },
       animationDurationUpdate: 650,
       tooltip: {
         trigger: "item",
@@ -959,8 +963,8 @@ export default function Home() {
         }),
       }],
       graphic: [
-        { type: "text", left: "center", top: "42%", style: { text: t.top, fill: "#718492", font: "600 9px Arial", textAlign: "center" } },
-        { type: "text", left: "center", top: "49%", style: { text: String(ringCountries.length), fill: "#eefaff", font: "700 28px Arial", textAlign: "center" } },
+        { type: "text", left: "center", top: "42%", style: { text: t.top, fill: "#718492", font: `600 11px ${uiFontFamily}`, textAlign: "center" } },
+        { type: "text", left: "center", top: "49%", style: { text: String(ringCountries.length), fill: "#eefaff", font: `700 28px ${uiFontFamily}`, textAlign: "center" } },
       ],
     };
   }, [countryLabel, ringCountries, selectedCode, t.anxiety, t.depression, t.joint, t.longTerm, t.suicide, t.top]);
@@ -973,6 +977,7 @@ export default function Home() {
     const globalSpan = globalMaximum - globalMinimum || 1;
     return {
       backgroundColor: "transparent",
+      textStyle: { fontFamily: uiFontFamily },
       animationDurationUpdate: 650,
       tooltip: {
         trigger: "item",
@@ -993,7 +998,7 @@ export default function Home() {
         clockwise: true,
         axisLine: { show: false },
         axisTick: { show: false },
-        axisLabel: { show: true, interval: 0, margin: 5, color: "#738895", fontSize: 7, fontFamily: "Arial" },
+        axisLabel: { show: true, interval: 0, margin: 5, color: "#738895", fontSize: 9, fontFamily: uiFontFamily },
       },
       radiusAxis: {
         min: 0,
@@ -1032,7 +1037,7 @@ export default function Home() {
         type: "text",
         left: "center",
         top: "47%",
-        style: { text: `${rankStart}–${rankStart + items.length - 1}`, fill: "#d9e6ec", font: "700 12px Arial", textAlign: "center" },
+        style: { text: `${rankStart}–${rankStart + items.length - 1}`, fill: "#d9e6ec", font: `700 13px ${uiFontFamily}`, textAlign: "center" },
       }],
     } as echarts.EChartsOption;
   }, [countryLabel, ringCountries, selectedCode, t.joint, t.longTerm, t.noData]);

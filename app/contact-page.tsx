@@ -8,6 +8,7 @@ import { Building2, ExternalLink, GitBranch, Mail, MapPinned, ShieldCheck } from
 import AtlasNav, { type AtlasLanguage } from "./atlas-nav";
 import { fetchVisitorCountryCounts, researchConfig, type VisitorCountryCount } from "../src/research-backend";
 import { visitRecordedEvent } from "../src/visitor-analytics";
+import { uiFontFamily } from "../src/typography";
 
 type AtlasGeometry = { id?: string | number; properties?: { name?: string } };
 const atlasGeographies = (worldAtlas as unknown as { objects: { countries: { geometries: AtlasGeometry[] } } }).objects.countries.geometries;
@@ -115,11 +116,12 @@ export default function ContactPage() {
     const maximum = Math.max(...values, 1);
     return {
       animationDuration: 500,
+      textStyle: { fontFamily: uiFontFamily },
       tooltip: {
         trigger: "item",
         backgroundColor: "#08141b",
         borderColor: "#334a58",
-        textStyle: { color: "#ecf7fb", fontSize: 10 },
+        textStyle: { color: "#ecf7fb", fontSize: 12, fontFamily: uiFontFamily },
         formatter: (params: unknown) => {
           const item = params as { name?: string; value?: number | string };
           const value = Number(item.value);
@@ -134,7 +136,7 @@ export default function ContactPage() {
           orient: "horizontal" as const,
           calculable: false,
           text: [String(maximum), "1"],
-          textStyle: { color: "#607783", fontSize: 8 },
+          textStyle: { color: "#607783", fontSize: 10, fontFamily: uiFontFamily },
           inRange: { color: ["#e9e4f2", "#aa87c5", "#76388f", "#3d155f"] },
         } } : {}),
       series: [{
@@ -147,7 +149,7 @@ export default function ContactPage() {
           return name ? [{ name, value: Number(item.visit_count) }] : [];
         }),
         itemStyle: { areaColor: "#dfe6e9", borderColor: "#33444d", borderWidth: .55 },
-        emphasis: { itemStyle: { areaColor: "#d97cb3", borderColor: "#f3fbff" }, label: { color: "#071015", fontSize: 9 } },
+        emphasis: { itemStyle: { areaColor: "#d97cb3", borderColor: "#f3fbff" }, label: { color: "#071015", fontSize: 11, fontFamily: uiFontFamily } },
         select: { disabled: true },
       }],
     };
