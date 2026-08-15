@@ -43,12 +43,30 @@ create table if not exists public.research_responses (
   completion_seconds integer not null check (completion_seconds between 0 and 86400)
 );
 
+create table if not exists public.site_visits (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null unique,
+  visited_at timestamptz not null default now(),
+  page_path text not null check (char_length(page_path) between 1 and 120),
+  country_code text check (country_code is null or char_length(country_code) = 2),
+  country_name text check (country_name is null or char_length(country_name) <= 120),
+  region text check (region is null or char_length(region) <= 160),
+  city text check (city is null or char_length(city) <= 160),
+  timezone text check (timezone is null or char_length(timezone) <= 80),
+  browser_language text check (browser_language is null or char_length(browser_language) <= 35),
+  screen_width integer not null check (screen_width between 200 and 10000),
+  referrer_host text check (referrer_host is null or char_length(referrer_host) <= 255)
+);
+
 create index if not exists research_responses_submitted_at_idx on public.research_responses (submitted_at desc);
 create index if not exists research_responses_country_idx on public.research_responses (country_code);
 create index if not exists research_responses_age_group_idx on public.research_responses (age_group);
+create index if not exists site_visits_visited_at_idx on public.site_visits (visited_at desc);
+create index if not exists site_visits_country_code_idx on public.site_visits (country_code);
 
 alter table public.research_admins enable row level security;
 alter table public.research_responses enable row level security;
+alter table public.site_visits enable row level security;
 
 create or replace function public.is_research_admin()
 returns boolean
@@ -90,8 +108,29 @@ for select
 to authenticated
 using (user_id = auth.uid());
 
+drop policy if exists "anonymous visitors can record a session" on public.site_visits;
+create policy "anonymous visitors can record a session"
+on public.site_visits
+for insert
+to anon
+with check (
+  session_id is not null
+  and page_path <> ''
+  and screen_width between 200 and 10000
+);
+
+drop policy if exists "research admins can read visits" on public.site_visits;
+create policy "research admins can read visits"
+on public.site_visits
+for select
+to authenticated
+using (public.is_research_admin());
+
 revoke all on public.research_responses from anon, authenticated;
 grant insert on public.research_responses to anon;
 grant select on public.research_responses to authenticated;
 revoke all on public.research_admins from anon, authenticated;
 grant select on public.research_admins to authenticated;
+revoke all on public.site_visits from anon, authenticated;
+grant insert on public.site_visits to anon;
+grant select on public.site_visits to authenticated;

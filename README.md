@@ -9,7 +9,12 @@ An interactive, browser-only dashboard for comparing suicide mortality with anxi
 - `#/` — Global atlas with maps, trajectories and rankings / 全球地图、年度轨迹与综合排名
 - `#/scenario` — Conditional 2030 results under trend continuation, attenuated divergence and accelerated divergence / 趋势延续、负担分化减弱和负担分化加速三种2030条件性情景
 - `#/survey` — Individual mental-health and socioeconomic research survey for adults aged 18+ / 面向18岁及以上成年人的个体心理健康与社会经济研究问卷
+- `#/contact` — Research contact, repository links and visitor-geography privacy notice / 研究联系、项目仓库与访客地理信息隐私说明
 - `#/admin` — Authorised research data dashboard / 仅授权管理员访问的研究数据后台
+
+English is the default interface language on every page. The language control switches the current page to Chinese.
+
+所有页面默认显示英文，可使用页面右上角的语言按钮切换为中文。
 
 ## Data format / 数据格式
 
@@ -26,19 +31,19 @@ Optional / 可选字段: `continent`. Existing aliases such as `Code`, `NAME`, `
 
 ## Privacy / 隐私
 
-Uploaded country panels are processed locally. Research survey responses are submitted only after electronic consent and only when an approved study database is configured.
+Uploaded country panels are processed locally. Research survey responses are submitted only after electronic consent and only when an approved study database is configured. When the research backend is connected, the site also records one visit per browser session to assess global reach. A network-location service estimates country, region and city; the database does not store raw IP addresses, GPS data or precise coordinates.
 
-上传的国家面板仅在浏览器本地处理。个体研究问卷仅在参与者完成电子知情同意、且经批准的研究数据库完成配置后才会提交。
+上传的国家面板仅在浏览器本地处理。个体研究问卷仅在参与者完成电子知情同意、且经批准的研究数据库完成配置后才会提交。研究后台接通后，网站还会为每个浏览器会话记录一次访问，以评估全球覆盖范围。网络定位服务仅估算国家、地区和城市；数据库不保存原始IP、GPS数据或精确坐标。
 
 ## Research database / 研究数据库
 
-The survey uses a Supabase PostgreSQL database with row-level security. Anonymous visitors can insert one response but cannot read any record. Only users listed in `research_admins` can access the dashboard and export data.
+The survey and privacy-limited visitor analytics use a Supabase PostgreSQL database with row-level security. Anonymous visitors can insert survey or session records but cannot read any record. Only users listed in `research_admins` can access the dashboard and export data.
 
-问卷使用启用行级安全策略的 Supabase PostgreSQL 数据库。匿名访问者只能提交一条记录，不能读取任何记录；只有加入 `research_admins` 的用户才能进入后台并导出数据。
+问卷和隐私受限的访客统计使用启用行级安全策略的 Supabase PostgreSQL 数据库。匿名访问者只能写入问卷或会话记录，不能读取任何记录；只有加入 `research_admins` 的用户才能进入后台并导出数据。
 
 1. Create a Supabase project and run [`supabase/schema.sql`](supabase/schema.sql) in its SQL editor.
 2. Create the administrator in Supabase Authentication, then add that user UUID to `research_admins`.
-3. Add `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_STUDY_CONTACT` and `VITE_ETHICS_ID` as GitHub Actions repository secrets.
+3. Add `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_STUDY_CONTACT` and `VITE_ETHICS_ID` as GitHub Actions repository secrets. Visitor analytics are enabled by default when Supabase is configured; set `VITE_VISITOR_ANALYTICS_ENABLED=false` to disable them or override `VITE_VISITOR_GEO_ENDPOINT` to use another approved geolocation endpoint.
 4. Complete and obtain ethics approval for [`docs/participant-information-consent-template.md`](docs/participant-information-consent-template.md) before formal recruitment.
 
 The questionnaire variable definitions are documented in [`docs/individual-survey-data-dictionary.md`](docs/individual-survey-data-dictionary.md).

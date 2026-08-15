@@ -244,7 +244,7 @@ function ScenarioChart({ option, className, onClick }: { option: echarts.ECharts
 }
 
 export default function ScenarioPage() {
-  const [lang, setLang] = useState<AtlasLanguage>("zh");
+  const [lang, setLang] = useState<AtlasLanguage>("en");
   const [scenario, setScenario] = useState<Scenario>("Trend continuation");
   const [outcome, setOutcome] = useState<Outcome>("Divergence");
   const [projections, setProjections] = useState<ProjectionRow[]>([]);

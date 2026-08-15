@@ -614,7 +614,7 @@ function MetricGlyph({ metric }: { metric: Metric }) {
 }
 
 export default function Home() {
-  const [lang, setLang] = useState<Lang>("zh");
+  const [lang, setLang] = useState<Lang>("en");
   const [rows, setRows] = useState<Datum[]>([]);
   const [sourceName, setSourceName] = useState("loading");
   const [metric, setMetric] = useState<Metric>("joint");

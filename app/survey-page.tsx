@@ -248,7 +248,7 @@ function InstrumentRows({ items, answers, labels, onChange }: { items: string[];
 }
 
 export default function SurveyPage() {
-  const [lang, setLang] = useState<AtlasLanguage>("zh");
+  const [lang, setLang] = useState<AtlasLanguage>("en");
   const [consents, setConsents] = useState([false, false, false, false]);
   const [consentedAt, setConsentedAt] = useState("");
   const [stage, setStage] = useState<"consent" | "form" | "complete">("consent");

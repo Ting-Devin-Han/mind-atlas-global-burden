@@ -39,6 +39,24 @@ export type StoredResearchSubmission = ResearchSubmission & {
   submitted_at: string;
 };
 
+export type SiteVisit = {
+  session_id: string;
+  page_path: string;
+  country_code: string | null;
+  country_name: string | null;
+  region: string | null;
+  city: string | null;
+  timezone: string | null;
+  browser_language: string | null;
+  screen_width: number;
+  referrer_host: string | null;
+};
+
+export type StoredSiteVisit = SiteVisit & {
+  id: string;
+  visited_at: string;
+};
+
 const environment = import.meta.env as Record<string, string | undefined>;
 
 export const researchConfig = {
@@ -46,6 +64,8 @@ export const researchConfig = {
   anonKey: environment.VITE_SUPABASE_ANON_KEY || "",
   studyContact: environment.VITE_STUDY_CONTACT || "",
   ethicsId: environment.VITE_ETHICS_ID || "",
+  visitorGeoEndpoint: environment.VITE_VISITOR_GEO_ENDPOINT || "https://ipwho.is/",
+  visitorAnalyticsEnabled: environment.VITE_VISITOR_ANALYTICS_ENABLED !== "false",
 };
 
 export const backendConfigured = Boolean(researchConfig.url && researchConfig.anonKey);
@@ -86,4 +106,23 @@ export async function fetchResearchResponses(token: string) {
   });
   if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? "FORBIDDEN" : "FETCH_FAILED");
   return response.json() as Promise<StoredResearchSubmission[]>;
+}
+
+export async function recordSiteVisit(payload: SiteVisit) {
+  if (!backendConfigured) throw new Error("BACKEND_NOT_CONFIGURED");
+  const response = await fetch(`${researchConfig.url}/rest/v1/site_visits`, {
+    method: "POST",
+    headers: { ...headers(), Prefer: "return=minimal" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error(`VISIT_RECORD_FAILED_${response.status}`);
+}
+
+export async function fetchSiteVisits(token: string) {
+  const response = await fetch(`${researchConfig.url}/rest/v1/site_visits?select=*&order=visited_at.desc&limit=500`, {
+    headers: headers(token),
+  });
+  if (response.status === 404) return [];
+  if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? "FORBIDDEN" : "FETCH_FAILED");
+  return response.json() as Promise<StoredSiteVisit[]>;
 }
