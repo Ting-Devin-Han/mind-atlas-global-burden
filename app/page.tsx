@@ -181,11 +181,47 @@ function repairWorldMap(collection: GeoJSON.FeatureCollection) {
   return { ...collection, features: repairedFeatures } as GeoJSON.FeatureCollection;
 }
 
+function mergeMapRegionIntoCountry(
+  collection: GeoJSON.FeatureCollection,
+  countryName: string,
+  regionName: string,
+) {
+  const country = collection.features.find((mapFeature) => mapFeature.properties?.name === countryName);
+  const region = collection.features.find((mapFeature) => mapFeature.properties?.name === regionName);
+  if (!country || !region) return collection;
+
+  const polygons = (mapFeature: GeoJSON.Feature): MapPolygon[] => {
+    const geometry = mapFeature.geometry;
+    if (!geometry) return [];
+    if (geometry.type === "Polygon") return [geometry.coordinates as MapPolygon];
+    if (geometry.type === "MultiPolygon") return geometry.coordinates as MapPolygon[];
+    return [];
+  };
+
+  const mergedCoordinates = [...polygons(country), ...polygons(region)];
+  if (!mergedCoordinates.length) return collection;
+
+  return {
+    ...collection,
+    features: collection.features
+      .filter((mapFeature) => mapFeature !== region)
+      .map((mapFeature) => mapFeature === country
+        ? {
+            ...mapFeature,
+            geometry: {
+              type: "MultiPolygon" as const,
+              coordinates: mergedCoordinates,
+            },
+          }
+        : mapFeature),
+  } as GeoJSON.FeatureCollection;
+}
+
 const rawWorldGeo = feature(
   worldAtlas as unknown as Parameters<typeof feature>[0],
   (worldAtlas as unknown as { objects: { countries: Parameters<typeof feature>[1] } }).objects.countries,
 ) as unknown as GeoJSON.FeatureCollection;
-const worldGeo = repairWorldMap(rawWorldGeo);
+const worldGeo = mergeMapRegionIntoCountry(repairWorldMap(rawWorldGeo), "China", "Taiwan");
 
 let worldRegistered = false;
 if (!worldRegistered) {
